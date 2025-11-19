@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nex / Tools / Comment Remover</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --panel-bg: #111;
+            --text-color: #eee;
+            --accent-color: #00ff99;
+            --border-color: #333;
+            --font-mono: 'Courier New', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+ 
+        header {
+            width: 100%; max-width: 1600px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;
+        }
+        h1 { font-size: 1.5rem; }
+        h1 span { color: #888; font-size: 0.8em; }
+        .back-link { color: #888; text-decoration: none; font-size: 0.9rem; }
+        .back-link:hover { color: var(--accent-color); }
+
+
+        .tool-container {
+            display: flex; flex-direction: column; gap: 20px;
+            width: 100%; 
+            max-width: 1600px;
+        }
+
+        #dropZone {
+            width: 100%; padding: 30px;
+            border: 2px dashed #444; border-radius: 8px;
+            text-align: center; background: rgba(255,255,255,0.02);
+            transition: 0.3s; cursor: pointer;
+        }
+        #dropZone.dragover {
+            border-color: var(--accent-color);
+            background: rgba(0, 255, 153, 0.1);
+        }
+        #dropZone p { color: #888; pointer-events: none; }
+        #fileInput { display: none; }
+
+        
+        .editors-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            height: 70vh; 
+        }
+
+        .editor-box {
+            display: flex; flex-direction: column;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .box-header {
+            padding: 10px 15px; background: #1a1a1a; border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        
+
+        textarea {
+            flex: 1;
+            background: #0a0a0a; color: #ccc; border: none;
+            padding: 20px; resize: none; font-family: inherit; font-size: 0.95rem;
+            line-height: 1.5; outline: none; white-space: pre; overflow-x: auto;
+        }
+        textarea:focus { box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+
+
+        .controls { display: flex; gap: 10px; align-items: center; }
+        
+        select {
+            background: #000; color: #fff; border: 1px solid #444;
+            padding: 5px 10px; font-family: inherit; cursor: pointer; max-width: 250px;
+        }
+        .checkbox-label {
+            font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
+        }
+        
+       
+        button.action-btn {
+            background: var(--accent-color); color: #000;
+            border: none; padding: 6px 20px; cursor: pointer;
+            font-weight: bold; font-family: inherit; transition: 0.2s;
+        }
+        button.action-btn:hover { opacity: 0.8; box-shadow: 0 0 15px var(--accent-color); }
+        
+        button.sub-btn {
+            background: transparent; border: 1px solid #555; color: #fff;
+            padding: 6px 15px; cursor: pointer; font-size: 0.8rem; transition: 0.3s;
+        }
+        button.sub-btn:hover { background: #fff; color: #000; }
+
+        .status-msg { font-size: 0.8rem; color: var(--accent-color); margin-left: 10px; display: none; }
+
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            .editors-grid { grid-template-columns: 1fr; height: auto; }
+            textarea { height: 300px; }
+            .box-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .controls { width: 100%; justify-content: space-between; }
+            select { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Comment Remover <span>v3.0</span></h1>
+    </header>
+
+    <div class="tool-container">
+        
+        <!-- Drag & Drop Zone -->
+        <div id="dropZone">
+            <p>Drag & Drop file here (or click to upload)</p>
+            <p style="font-size: 0.8rem; margin-top: 5px;">Auto-detects language from extension (.js, .py, .html, etc.)</p>
+            <input type="file" id="fileInput">
+        </div>
+
+        <div class="editors-grid">
+            <!-- 入力エリア -->
+            <div class="editor-box">
+                <div class="box-header">
+                    <div style="display:flex; align-items:center; flex-wrap:wrap;">
+                        <span>Input</span>
+                        <span id="detectedMsg" class="status-msg">Detected: JS</span>
+                    </div>
+                    <div class="controls">
+                        <select id="langSelect">
+                            <option value="c-style">Java / JS / C / C++ / PHP</option>
+                            <option value="html-aggressive">HTML + CSS/JS (Deep Clean)</option>
+                            <option value="html">HTML (Comments Only)</option>
+                            <option value="css">CSS / SCSS</option>
+                            <option value="python">Python / Ruby / Shell</option>
+                            <option value="sql">SQL</option>
+                        </select>
+                    </div>
+                </div>
+                <textarea id="inputCode" placeholder="// Drag a file or paste code here..."></textarea>
+            </div>
+
+        
+            <div class="editor-box">
+                <div class="box-header">
+                    <div style="display:flex; align-items:center;">
+                        <span>Output</span>
+                        <label class="checkbox-label" style="margin-left:15px;">
+                            <input type="checkbox" id="trimLines" checked> Trim Empty Lines
+                        </label>
+                    </div>
+                    <div class="controls">
+                        <button id="execBtn" class="action-btn">RUN</button>
+                        <button id="downloadBtn" class="sub-btn">DOWNLOAD</button>
+                        <button id="copyBtn" class="sub-btn">COPY</button>
+                    </div>
+                </div>
+                <textarea id="outputCode" readonly placeholder="Result will appear here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const libCdl = {
+            
+            // 拡張子とモードのマッピング
+            extMap: {
+                // C-Style (//, /* */)
+                'js': 'c-style', 'ts': 'c-style', 'jsx': 'c-style', 'tsx': 'c-style',
+                'java': 'c-style', 'c': 'c-style', 'cpp': 'c-style', 'h': 'c-style', 
+                'cs': 'c-style', 'php': 'c-style', 'go': 'c-style', 'swift': 'c-style', 
+                'kt': 'c-style', 'rs': 'c-style',
+                
+                // Python-Style (#)
+                'py': 'python', 'rb': 'python', 'sh': 'python', 'yaml': 'python', 
+                'yml': 'python', 'pl': 'python',
+                
+                // HTML (Aggressive default)
+                'html': 'html-aggressive', 'htm': 'html-aggressive', 
+                'vue': 'html-aggressive', 'svelte': 'html-aggressive',
+                'xml': 'html', 'svg': 'html',
+                
+                // CSS (/* */)
+                'css': 'css', 'scss': 'css', 'less': 'css',
+                
+                // SQL (-- , /* */)
+                'sql': 'sql'
+            },
+
+            
+            detectMode: function(filename) {
+                if (!filename.includes('.')) return null;
+                const ext = filename.split('.').pop().toLowerCase();
+                return this.extMap[ext] || null;
+            },
+                 process: function(sourceCode, type, trimEmpty) {
+                if (!sourceCode) return "";
+                
+                let result = "";
+                switch(type) {
+                    case 'c-style':         result = this.removeCStyle(sourceCode); break;
+                    case 'html':            result = this.removeHtml(sourceCode); break;
+                    case 'html-aggressive': result = this.removeHtmlAggressive(sourceCode); break;
+                    case 'css':             result = this.removeCss(sourceCode); break;
+                    case 'python':          result = this.removePythonStyle(sourceCode); break;
+                    case 'sql':             result = this.removeSql(sourceCode); break;
+                    default:                result = sourceCode;
+                }
+
+                if (trimEmpty) {
+                    return this.removeBlankLines(result);
+                }
+                return result;
+            },
+
+            removeCStyle: function(code) {
+                return code.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+            },
+
+
+            removeHtml: function(code) {
+                return code.replace(/<!--[\s\S]*?-->/g, '');
+            },
+
+
+            removeHtmlAggressive: function(code) {
+                
+                let c = this.removeHtml(code);
+
+               
+                c = c.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (match, startTag, content, endTag) => {
+                    return startTag + this.removeCss(content) + endTag;
+                });
+
+               
+                c = c.replace(/(<script[^>]*>)([\s\S]*?)(<\/script>)/gi, (match, startTag, content, endTag) => {
+             
+                    return startTag + this.removeCStyle(content) + endTag;
+                });
+
+                return c;
+            },
+
+            // CSS
+            removeCss: function(code) {
+                return code.replace(/\/\*[\s\S]*?\*\//g, '');
+            },
+
+            // Python / Shell
+            removePythonStyle: function(code) {
+                return code.replace(/#.*$/gm, '');
+            },
+
+            // SQL
+            removeSql: function(code) {
+                return code.replace(/\/\*[\s\S]*?\*\/|--.*$/gm, '');
+            },
+
+     
+            removeBlankLines: function(code) {
+                return code.replace(/^\s*[\r\n]/gm, '');
+            }
+        };
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const inputEl = document.getElementById('inputCode');
+        const outputEl = document.getElementById('outputCode');
+        const langSelect = document.getElementById('langSelect');
+        const execBtn = document.getElementById('execBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const detectedMsg = document.getElementById('detectedMsg');
+        const trimCheck = document.getElementById('trimLines');
+        let originalFileName = "";
+        
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) loadFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (fileInput.files.length > 0) loadFile(fileInput.files[0]);
+        });
+
+        function loadFile(file) {
+            originalFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                inputEl.value = e.target.result;
+                
+                const mode = libCdl.detectMode(file.name);
+                if (mode) {
+                    langSelect.value = mode;
+                    showStatus(`Detected: ${file.name} -> ${mode.toUpperCase()}`);
+                } else {
+                    showStatus(`Loaded: ${file.name} (Unknown Type)`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showStatus(msg) {
+            detectedMsg.innerText = msg;
+            detectedMsg.style.display = 'block';
+            detectedMsg.style.opacity = '0';
+            setTimeout(() => detectedMsg.style.opacity = '1', 100);
+        }
+
+        execBtn.addEventListener('click', () => {
+            const rawCode = inputEl.value;
+            const langType = langSelect.value;
+            const isTrim = trimCheck.checked;
+            
+            const cleaned = libCdl.process(rawCode, langType, isTrim);
+            outputEl.value = cleaned;
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const content = outputEl.value;
+            if (!content) {
+                alert("No content to download.");
+                return;
+            }
+
+            const fileName = originalFileName ? originalFileName : "cleaned_output.txt";
+
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        copyBtn.addEventListener('click', function() {
+            if (!outputEl.value) return;
+            navigator.clipboard.writeText(outputEl.value).then(() => {
+                const original = this.innerText;
+                this.innerText = "COPIED!";
+                setTimeout(() => this.innerText = original, 1500);
+            });
+        });
+
+        inputEl.value = `<!-- HTML Comment (Removed) -->
+<!DOCTYPE html>
+<html>
+<body>
+    <a href="https://example.com">Link</a> <!-- Link is Safe -->
+    
+    <style>
+        /* CSS Comment (Removed in Aggressive Mode) */
+        body { color: #333; }
+    </style>
+
+    <script>
+        // JS Comment (Removed in Aggressive Mode)
+        console.log("Hello"); 
+    <\/script>
+</body>
+</html>`;
+
+    </script>
+</body>
+</html>
