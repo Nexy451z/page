@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTRPluginFramework AR Code Gen / Hex Calc</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --panel-bg: #0a0a0a;
+            --text-main: #e0e0e0;
+            --text-sub: #888888;
+            --accent-color: #00ff99;     
+            --accent-hover: #ccffdd;
+            --secondary-color: #00ccff;  
+            --border-color: #333333;
+            --input-bg: #000000;
+            --danger-color: #ff3333;
+            --font-mono: 'Courier New', Consolas, monospace;
+            --code-type: #ff9900;       
+            --code-offset: #00ff99;     
+            --code-imm: #00ccff;        
+            --code-mask: #ffff00;       
+            --code-unused: #555555;     
+            --code-control: #ff3333;    
+            --code-patch: #cc66ff;      
+        }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #333; border: 1px solid var(--bg-color); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            margin: 0;
+            padding: 1rem;
+            font-size: 0.9rem;
+            overflow-x: hidden;
+        }
+        h1, h2, h3 {
+            font-weight: normal;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 0 0 1rem 0;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        h1::before { content: "> "; color: var(--accent-color); }
+        h2::before { content: ">> "; color: var(--secondary-color); }
+        .top-tools {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        @media (max-width: 1000px) { .top-tools { grid-template-columns: 1fr; } }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: calc(100vh - 350px); 
+        }
+        @media (max-width: 1000px) { 
+            .container { grid-template-columns: 1fr; height: auto; } 
+        }
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .panel::after {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, var(--accent-color), transparent);
+            opacity: 0.5;
+        }
+        input, select, textarea, button {
+            font-family: var(--font-mono);
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px;
+            font-size: 0.85rem;
+            width: 100%;
+            outline: none;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px rgba(0, 255, 153, 0.2);
+        }
+        label { color: var(--text-sub); font-size: 0.8rem; display: block; margin-bottom: 4px; }
+        .form-group { margin-bottom: 10px; }
+        .form-inline { display: flex; gap: 15px; flex-wrap: wrap; }
+        .form-inline label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-main); }
+        input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--accent-color); }
+        .checkbox-group {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            background: #000;
+            max-height: 100px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 5px;
+        }
+        button {
+            cursor: pointer;
+            background: #111;
+            border: 1px solid #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            color: #aaa;
+        }
+        button:hover:not(:disabled) {
+            background: var(--text-main);
+            color: var(--bg-color);
+            border-color: var(--text-main);
+        }
+        button:active:not(:disabled) { transform: translateY(1px); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-secondary { border-color: var(--secondary-color); color: var(--secondary-color); }
+        .btn-secondary:hover:not(:disabled) { background: var(--secondary-color); color: #000; }
+        .btn-danger { border-color: var(--danger-color); color: var(--danger-color); }
+        .btn-danger:hover:not(:disabled) { background: var(--danger-color); color: #fff; }
+        .calculator-container summary {
+            cursor: pointer;
+            color: var(--accent-color);
+            font-weight: bold;
+            list-style: none;
+            outline: none;
+        }
+        .calculator-container summary::-webkit-details-marker { display: none; }
+        .calculator-container summary::after { content: " [ +/- ]"; font-size: 0.8em; opacity: 0.5; }
+        #calculator-screen {
+            text-align: right; font-size: 1.5rem; letter-spacing: 2px;
+            background: #000; border: 1px solid var(--border-color); color: var(--accent-color);
+            margin-bottom: 10px;
+        }
+        .calculator-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+        }
+        .calc-button { padding: 10px 0; font-size: 1rem; }
+        .btn-info { color: var(--secondary-color); border-color: var(--secondary-color); }
+        .asm-tool-section textarea { font-family: var(--font-mono); height: 60px; }
+        .asm-tool-section pre {
+            background: #000; padding: 10px; border: 1px dashed var(--border-color); color: var(--secondary-color);
+            white-space: pre-wrap; word-break: break-all; margin-top: 5px; min-height: 2em;
+        }
+        #code-blocks-container {
+            flex-grow: 1; overflow-y: auto;
+            background: rgba(0,0,0,0.3);
+            border: 1px dashed var(--border-color);
+            padding: 10px;
+            min-height: 200px;
+        }
+        .code-block {
+            background: #111;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--secondary-color);
+            margin-bottom: 10px;
+            padding: 0;
+            transition: 0.2s;
+        }
+        .code-block:hover { border-color: var(--text-sub); box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .code-block-header {
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: grab;
+            user-select: none;
+        }
+        .code-block-header h3 { margin: 0; font-size: 0.9rem; color: var(--text-main); border: none; }
+        .code-block-header .category { font-size: 0.7rem; color: var(--text-sub); margin-left: 10px; }
+        .code-block-content { padding: 10px; border-top: 1px solid var(--border-color); }
+        .code-block.collapsed .code-block-content { display: none; }
+        .header-buttons button {
+            background: none; border: none; padding: 0 5px; font-size: 1rem; color: var(--text-sub); width: auto;
+        }
+        .header-buttons button:hover { color: var(--accent-color); background: none; }
+        .header-buttons .delete-btn:hover { color: var(--danger-color); }
+        #output-table-container {
+            flex-grow: 1; overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: #000;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { position: sticky; top: 0; background: #1a1a1a; color: var(--accent-color); text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color); z-index: 2; }
+        td { padding: 6px 8px; border-bottom: 1px solid #222; vertical-align: top; }
+        tr:hover td { background: rgba(255, 255, 255, 0.03); }
+        .code-type { color: var(--code-type); font-weight: bold; }
+        .code-address { color: #ccc; }
+        .code-offset { color: var(--code-offset); }
+        .code-immediate { color: var(--code-imm); }
+        .code-mask { color: var(--code-mask); }
+        .code-unused { color: var(--code-unused); }
+        .code-control { color: var(--code-control); }
+        .code-patch-data { color: var(--code-patch); }
+        .code-error { color: var(--danger-color); font-weight: bold; background: rgba(255,0,0,0.1); }
+        .placeholder { height: 40px; border: 2px dashed var(--accent-color); background: rgba(0, 255, 153, 0.05); margin-bottom: 10px; }
+        .hidden { display: none; }
+        .input-error { border-color: var(--danger-color) !important; }
+        hr { border: 0; border-top: 1px solid var(--border-color); margin: 15px 0; }
+    </style>
+</head>
+<body>
+<div class="top-tools">
+    <details class="panel calculator-container" open>
+        <summary>HEX_CALCULATOR_v2</summary>
+        <div class="calculator-panel" style="margin-top: 10px;">
+            <input type="text" id="calculator-screen" value="0" readonly>
+            <div class="calculator-mode-toggle form-inline" style="justify-content: flex-end; margin-bottom: 10px;">
+                <label><input type="radio" name="calc-mode" value="DEC" checked> DEC</label>
+                <label><input type="radio" name="calc-mode" value="HEX"> HEX</label>
+            </div>
+            <div class="calculator-grid">
+                <button class="calc-button btn-secondary" data-calc-function="sin">sin</button>
+                <button class="calc-button btn-secondary" data-calc-function="cos">cos</button>
+                <button class="calc-button btn-secondary" data-calc-function="tan">tan</button>
+                <button class="calc-button btn-danger" data-calc-clear>AC</button>
+                <button class="calc-button btn-danger" data-calc-delete>&lt;</button>
+                <button class="calc-button btn-secondary" data-calc-function="log">log</button>
+                <button class="calc-button" data-calc-number data-calc-hex>A</button>
+                <button class="calc-button" data-calc-number data-calc-hex>B</button>
+                <button class="calc-button" data-calc-number data-calc-hex>C</button>
+                <button class="calc-button btn-info" data-calc-operation>÷</button>
+                <button class="calc-button btn-secondary" data-calc-function="ln">ln</button>
+                <button class="calc-button" data-calc-number data-calc-hex>D</button>
+                <button class="calc-button" data-calc-number data-calc-hex>E</button>
+                <button class="calc-button" data-calc-number data-calc-hex>F</button>
+                <button class="calc-button btn-info" data-calc-operation>×</button>
+                <button class="calc-button btn-secondary" data-calc-function="√">√</button>
+                <button class="calc-button" data-calc-number>7</button>
+                <button class="calc-button" data-calc-number>8</button>
+                <button class="calc-button" data-calc-number>9</button>
+                <button class="calc-button btn-info" data-calc-operation>-</button>
+                <button class="calc-button btn-secondary" data-calc-function="x²">x²</button>
+                <button class="calc-button" data-calc-number>4</button>
+                <button class="calc-button" data-calc-number>5</button>
+                <button class="calc-button" data-calc-number>6</button>
+                <button class="calc-button btn-info" data-calc-operation>+</button>
+                <button class="calc-button btn-secondary" data-calc-function="±">±</button>
+                <button class="calc-button" data-calc-number>1</button>
+                <button class="calc-button" data-calc-number>2</button>
+                <button class="calc-button" data-calc-number>3</button>
+                <button class="calc-button" data-calc-equals style="border-color:var(--accent-color); color:var(--accent-color); grid-row: span 2;">=</button>
+                <button class="calc-button" data-calc-number style="grid-column: span 2;">0</button>
+                <button class="calc-button" data-calc-number>.</button>
+                <button class="calc-button" data-calc-number>00</button>
+            </div>
+        </div>
+    </details>
+    <div class="panel asm-tool-section">
+        <h2>ARM11_ASSEMBLER_SUITE</h2>
+        <h3>> Disassembler</h3>
+        <div style="display:flex; gap:10px; margin-bottom:5px;">
+            <textarea id="disasm-input" placeholder="ex: 00100000 E3A00001" style="flex-grow:1;"></textarea>
+            <button onclick="disassembleInput()" class="btn-secondary" style="width:80px;">EXEC</button>
+        </div>
+        <pre id="disasm-output">// Output will appear here...</pre>
+        <hr>
+        <h3>> Instruction Generator</h3>
+        <div class="form-group" style="display:flex; gap:10px; align-items:center;">
+            <label for="asm-op-selector" style="width:50px;">OP:</label>
+            <select id="asm-op-selector" style="flex-grow:1;">
+                <option value="b">B / BL (Branch)</option>
+                <option value="mov_reg">MOV (Register)</option>
+                <option value="mov_imm">MOV (Immediate)</option>
+                <option value="add_reg">ADD (Register)</option>
+                <option value="add_imm">ADD (Immediate)</option>
+                <option value="sub_reg">SUB (Register)</option>
+                <option value="sub_imm">SUB (Immediate)</option>
+                <option value="cmp_reg">CMP (Register)</option>
+                <option value="cmp_imm">CMP (Immediate)</option>
+                <option value="ldr_imm">LDR (Imm Offset)</option>
+                <option value="str_imm">STR (Imm Offset)</option>
+            </select>
+        </div>
+        <div id="asm-fields-container" class="form-inline" style="gap:10px; margin-bottom:10px;"></div>
+        <button onclick="encodeAsmInstruction()" class="btn-secondary">GENERATE_CODE</button>
+        <div class="arm-asm-output">
+            <pre id="asm-result">// Result...</pre>
+            <p id="asm-warning" style="color:var(--code-mask); font-size:0.8rem; margin-top:5px;"></p>
+        </div>
+    </div>
+</div>
+<main class="container">
+    <section class="panel">
+        <header>
+            <h1>AR_CODE_EDITOR</h1>
+        </header>
+        <div style="margin-bottom: 1rem;">
+            <div class="form-group">
+                <label for="code-type-selector">SELECT_BLOCK_TYPE:</label>
+                <div style="display:flex; gap:10px;">
+                    <select id="code-type-selector"></select>
+                    <button id="add-block-btn" style="border-color:var(--accent-color); color:var(--accent-color);">+ ADD</button>
+                </div>
+            </div>
+        </div>
+        <div id="code-blocks-container">
+        </div>
+        <div style="margin-top: auto; padding-top:10px; display:flex; gap:10px;">
+             <button id="clear-all-btn" class="btn-danger" style="flex-grow:1;">[ PURGE ALL DATA ]</button>
+        </div>
+        <hr>
+        <details>
+            <summary style="cursor:pointer; color:var(--text-sub);">[ IMPORT RAW CODE ]</summary>
+            <textarea id="import-textarea" rows="3" placeholder="Paste codes here..." style="margin-top:5px;"></textarea>
+            <button id="import-btn" class="btn-secondary" style="margin-top:5px; width:100%;">IMPORT</button>
+        </details>
+    </section>
+    <aside class="panel" id="output-area">
+        <header>
+            <h1>COMPILED_OUTPUT</h1>
+        </header>
+        <div id="output-table-container">
+            <table id="output-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">HEX_CODE</th>
+                        <th>OPERATION_LOG</th>
+                    </tr>
+                </thead>
+                <tbody id="output-tbody">
+                </tbody>
+            </table>
+        </div>
+        <div class="output-footer" style="margin-top: 10px;">
+           <button id="copy-btn" style="border-color:var(--accent-color); color:var(--accent-color);">>> COPY_TO_CLIPBOARD</button>
+        </div>
+        <hr>
+        <div>
+            <h3>SYSTEM_MEMO</h3>
+            <textarea id="memo" rows="5" placeholder="// Enter notes here (Auto-saved)"></textarea>
+        </div>
+    </aside>
+</main>
+<script>
+'use strict';
+const Utils = {
+    Format: (format, ...args) => {
+        let i = 0;
+        return format.replace(/%([-0]*)(\d*)([sduxX])/g, (match, flags, width, type) => {
+            if (i >= args.length) return match;
+            let arg = args[i++];
+            let str;
+            switch(type) {
+                case 's': str = String(arg); break;
+                case 'd': str = String(parseInt(arg, 10)); break;
+                case 'u': str = String(arg >>> 0); break;
+                case 'x': str = (arg >>> 0).toString(16); break;
+                case 'X': str = (arg >>> 0).toString(16).toUpperCase(); break;
+                default: return match;
+            }
+            if (width) {
+                const padChar = flags.includes('0') ? '0' : ' ';
+                if (flags.includes('-')) {
+                    str = str.padEnd(parseInt(width), padChar);
+                } else {
+                    str = str.padStart(parseInt(width), padChar);
+                }
+            }
+            return str;
+        });
+    },
+    ToHex: (n, padding = 8) => (n >>> 0).toString(16).toUpperCase().padStart(padding, '0'),
+    Random: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min
+};
+const ARM_Disasm = (function() {
+    const Opcode = {
+        INVALID: 0, UNDEFINED: 1, ADC: 2, ADD: 3, AND: 4, B: 5, BL: 6, BIC: 7, BKPT: 8, BLX: 9, BX: 10,
+        CDP: 11, CLZ: 13, CMN: 14, CMP: 15, EOR: 18, LDC: 21, LDM: 22, LDR: 23, LDRB: 24, LDRH: 26,
+        LDRSB: 28, LDRSH: 29, MCR: 35, MLA: 36, MOV: 37, MRC: 38, MRS: 39, MSR: 40, MUL: 41, MVN: 42,
+        ORR: 44, PLD: 45, RSB: 47, RSC: 48, SBC: 49, SMLAL: 51, SMULL: 52, STC: 53, STM: 54, STR: 55,
+        STRB: 56, STRH: 58, SUB: 65, SWI: 66, SWP: 67, SWPB: 68, SXTAB: 69, SXTAB16: 70, SXTAH: 71,
+        SXTB: 72, SXTB16: 73, SXTH: 74, UXTAB: 75, UXTAB16: 76, UXTAH: 77, UXTB: 78, UXTB16: 79,
+        UXTH: 80, TEQ: 81, TST: 82, UMLAL: 83, UMULL: 84
+    };
+    const cond_names = ["eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc", "hi", "ls", "ge", "lt", "gt", "le", "", "RESERVED"];
+    const opcode_names = { [Opcode.INVALID]:"invalid", [Opcode.UNDEFINED]:"undefined", [Opcode.ADC]:"adc", [Opcode.ADD]:"add", [Opcode.AND]:"and", [Opcode.B]:"b", [Opcode.BL]:"bl", [Opcode.BIC]:"bic", [Opcode.BKPT]:"bkpt", [Opcode.BX]:"bx", [Opcode.CLZ]:"clz", [Opcode.CMN]:"cmn", [Opcode.CMP]:"cmp", [Opcode.EOR]:"eor", [Opcode.LDC]:"ldc", [Opcode.LDM]:"ldm", [Opcode.LDR]:"ldr", [Opcode.LDRB]:"ldrb", [Opcode.LDRH]:"ldrh", [Opcode.LDRSB]:"ldrsb", [Opcode.LDRSH]:"ldrsh", [Opcode.MCR]:"mcr", [Opcode.MLA]:"mla", [Opcode.MOV]:"mov", [Opcode.MRC]:"mrc", [Opcode.MRS]:"mrs", [Opcode.MSR]:"msr", [Opcode.MUL]:"mul", [Opcode.MVN]:"mvn", [Opcode.ORR]:"orr", [Opcode.PLD]:"pld", [Opcode.RSB]:"rsb", [Opcode.RSC]:"rsc", [Opcode.SBC]:"sbc", [Opcode.SMLAL]:"smlal", [Opcode.SMULL]:"smull", [Opcode.STC]:"stc", [Opcode.STM]:"stm", [Opcode.STR]:"str", [Opcode.STRB]:"strb", [Opcode.STRH]:"strh", [Opcode.SUB]:"sub", [Opcode.SWI]:"svc", [Opcode.SWP]:"swp", [Opcode.SWPB]:"swpb", [Opcode.TEQ]:"teq", [Opcode.TST]:"tst", [Opcode.UMLAL]:"umlal", [Opcode.UMULL]:"umull", [Opcode.SXTAB]:"sxtab", [Opcode.SXTAB16]:"sxtab16", [Opcode.SXTAH]:"sxtah", [Opcode.SXTB]:"sxtb", [Opcode.SXTB16]:"sxtb16", [Opcode.SXTH]:"sxth", [Opcode.UXTAB]:"uxtab", [Opcode.UXTAB16]:"uxtab16", [Opcode.UXTAH]:"uxtah", [Opcode.UXTB]:"uxtb", [Opcode.UXTB16]:"uxtb16", [Opcode.UXTH]:"uxth" };
+    const shift_names = ["LSL", "LSR", "ASR", "ROR"];
+    const RegNames = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
+    function cond_to_str(cond) { return cond_names[cond]; }
+    function DisassembleALU(opcode, insn) {
+        const kNoOperand1=1, kNoDest=2, kNoSbit=4;
+        let flags=0;
+        let rd_str="", rn_str="";
+        const cond=(insn>>>28)&0xf, is_immed=(insn>>>25)&1, bit_s=(insn>>>20)&1, rn=(insn>>>16)&0xf, rd=(insn>>>12)&0xf;
+        const opname=opcode_names[opcode];
+        if(opcode===Opcode.CMN || opcode===Opcode.CMP || opcode===Opcode.TEQ || opcode===Opcode.TST) flags = kNoDest | kNoSbit;
+        else if (opcode===Opcode.MOV || opcode===Opcode.MVN) flags = kNoOperand1;
+        if(!(flags & kNoOperand1)) rn_str = `${RegNames[rn]}, `;
+        if(!(flags & kNoDest)) rd_str = `${RegNames[rd]}, `;
+        const sbit_str = bit_s && !(flags & kNoSbit) ? "s" : "";
+        const full_opname = (opname + cond_to_str(cond) + sbit_str).padEnd(8);
+        if (is_immed) {
+            const immed_val = insn & 0xff;
+            const rotate = (insn >>> 8) & 0xf;
+            const rotate2 = rotate << 1;
+            const rotated_val = ((immed_val >>> rotate2) | (immed_val << (32 - rotate2))) >>> 0;
+            return `${full_opname}${rd_str}${rn_str}#${rotated_val}  ; 0x${Utils.ToHex(rotated_val, 0)}`;
+        }
+        const rm=insn&0xf, shift_type=(insn>>>5)&3, rs=(insn>>>8)&0xf;
+        let shift_amount=(insn>>>7)&0x1f;
+        const shift_is_reg = (insn >> 4) & 1;
+        if (!shift_is_reg && shift_type === 0 && shift_amount === 0) {
+            return `${full_opname}${rd_str}${rn_str}${RegNames[rm]}`;
+        }
+        const shift_name = shift_names[shift_type];
+        if (shift_is_reg) {
+            return `${full_opname}${rd_str}${rn_str}${RegNames[rm]}, ${shift_name} ${RegNames[rs]}`;
+        }
+        if (shift_amount === 0) {
+            if (shift_type === 3) { 
+                return `${full_opname}${rd_str}${rn_str}${RegNames[rm]}, RRX`;
+            }
+            shift_amount = 32;
+        }
+        return `${full_opname}${rd_str}${rn_str}${RegNames[rm]}, ${shift_name} #${shift_amount}`;
+    }
+    function DisassembleBranch(addr, opcode, insn) {
+        const cond = (insn >>> 28) & 0xf;
+        let offset = insn & 0xffffff;
+        if ((offset >> 23) & 1) offset |= 0xff000000;
+        offset = (offset << 2) >>> 0;
+        const target_addr = (addr + 8 + offset) >>> 0;
+        const opname = opcode_names[opcode];
+        return `${(opname+cond_to_str(cond)).padEnd(8)}0x${Utils.ToHex(target_addr)}`;
+    }
+    function DisassembleBX(insn) {
+        const cond = (insn >>> 28) & 0xf, rm = insn & 0xf;
+        return `${("bx"+cond_to_str(cond)).padEnd(8)}${RegNames[rm]}`;
+    }
+    function DisassembleMem(insn) {
+        const cond = (insn >>> 28) & 0xf, is_reg = (insn >>> 25) & 0x1, is_load = (insn >>> 20) & 0x1,
+              write_back = (insn >>> 21) & 0x1, is_byte = (insn >>> 22) & 0x1, is_up = (insn >>> 23) & 0x1,
+              is_pre = (insn >>> 24) & 0x1, rn = (insn >>> 16) & 0xf, rd = (insn >>> 12) & 0xf;
+        const opname = is_load ? "ldr" : "str";
+        const bang = write_back ? "!" : "";
+        const minus = is_up === 0 ? "-" : "";
+        const byte = is_byte ? "b" : "";
+        const full_opname = (opname + cond_to_str(cond) + byte).padEnd(8);
+        if (is_reg === 0) {
+            const offset = insn & 0xfff;
+            if (is_pre) {
+                return offset === 0 ? `${full_opname}${RegNames[rd]}, [${RegNames[rn]}]` : `${full_opname}${RegNames[rd]}, [${RegNames[rn]}, #${minus}0x${offset.toString(16)}]${bang}`;
+            } else {
+                return `${full_opname}${RegNames[rd]}, [${RegNames[rn]}], #${minus}0x${offset.toString(16)}`;
+            }
+        }
+        const rm = insn & 0xf, shift_type = (insn >> 5) & 3;
+        let shift_amount = (insn >> 7) & 0x1f;
+        const shift_name = shift_names[shift_type];
+        let shift_str;
+        if (shift_amount === 0) {
+            if (shift_type === 0) shift_str = `${minus}${RegNames[rm]}`;
+            else if (shift_type === 3) shift_str = `${minus}${RegNames[rm]}, RRX`;
+            else shift_str = `${minus}${RegNames[rm]}, ${shift_name} #32`;
+        } else {
+            shift_str = `${minus}${RegNames[rm]}, ${shift_name} #${shift_amount}`;
+        }
+        if (is_pre) {
+            return `${full_opname}${RegNames[rd]}, [${RegNames[rn]}, ${shift_str}]${bang}`;
+        } else {
+            return `${full_opname}${RegNames[rd]}, [${RegNames[rn]}], ${shift_str}`;
+        }
+    }
+    function Decode(insn) {
+        const bits27_26 = (insn >>> 26) & 0x3;
+        switch(bits27_26) {
+            case 0x0: return Decode00(insn);
+            case 0x1: return Decode01(insn);
+            case 0x2: return Decode10(insn);
+            case 0x3: return Decode11(insn);
+        }
+        return Opcode.INVALID;
+    }
+    function Decode00(insn) {
+        const bit25=(insn>>>25)&1, bit4=(insn>>>4)&1, bits7_4=(insn>>>4)&0xf;
+        if(bit25===0&&bit4===1){
+            if((insn&0x0ffffff0)===0x012fff10) return Opcode.BX;
+            if((insn&0x0ff000f0)===0x01600010) return Opcode.CLZ;
+            if((insn&0xfff000f0)===0xe1200070) return Opcode.BKPT;
+            if(bits7_4===9){
+                if((insn&0x0ff00ff0)===0x01000090) return (insn>>>22)&1 ? Opcode.SWPB : Opcode.SWP;
+                return DecodeMUL(insn);
+            }
+            if((insn>>>7)&1) return DecodeLDRH(insn);
+        }
+        if(((insn>>23)&7)===5 && ((insn>>4)&0xf)===7) { 
+            const bits22_20=(insn>>>20)&7, rn=(insn>>>16)&0xf;
+            if(rn===0xf) {
+                if(bits22_20===2) return Opcode.SXTB; if(bits22_20===0) return Opcode.SXTB16; if(bits22_20===3) return Opcode.SXTH;
+                if(bits22_20===6) return Opcode.UXTB; if(bits22_20===4) return Opcode.UXTB16; if(bits22_20===7) return Opcode.UXTH;
+            } else {
+                if(bits22_20===2) return Opcode.SXTAB; if(bits22_20===0) return Opcode.SXTAB16; if(bits22_20===3) return Opcode.SXTAH;
+                if(bits22_20===6) return Opcode.UXTAB; if(bits22_20===4) return Opcode.UXTAB16; if(bits22_20===7) return Opcode.UXTAH;
+            }
+        }
+        return DecodeALU(insn);
+    }
+    function Decode01(insn){
+        if((insn & 0xFD70F000) === 0xF550F000) return Opcode.PLD;
+        const is_load=(insn>>>20)&1, is_byte=(insn>>>22)&1;
+        if(is_load) return is_byte?Opcode.LDRB:Opcode.LDR;
+        return is_byte?Opcode.STRB:Opcode.STR;
+    }
+    function Decode10(insn){
+        if(!((insn>>>25)&1)) return (insn>>>20)&1?Opcode.LDM:Opcode.STM;
+        return (insn>>>24)&1?Opcode.BL:Opcode.B;
+    }
+    function Decode11(insn){
+        if(!((insn>>>25)&1)) return (insn>>>20)&1?Opcode.LDC:Opcode.STC;
+        if((insn&0x0F000000)===0x0F000000) return Opcode.SWI;
+        return Opcode.UNDEFINED;
+    }
+    function DecodeMUL(insn){
+        if((insn>>>24)&1) return Opcode.UNDEFINED;
+        const l=(insn>>>23)&1, u=(insn>>>22)&1, a=(insn>>>21)&1;
+        if(l===0){
+            if(u) return Opcode.UNDEFINED;
+            return a?Opcode.MLA:Opcode.MUL;
+        }
+        if(u===0) return a?Opcode.UMLAL:Opcode.UMULL;
+        return a?Opcode.SMLAL:Opcode.SMULL;
+    }
+    function DecodeLDRH(insn){
+        const is_load=(insn>>>20)&1, bits_65=(insn>>>5)&3;
+        if(is_load){
+            if(bits_65===1) return Opcode.LDRH;
+            if(bits_65===2) return Opcode.LDRSB;
+            if(bits_65===3) return Opcode.LDRSH;
+        } else {
+            if(bits_65===1) return Opcode.STRH;
+        }
+        return Opcode.UNDEFINED;
+    }
+    function DecodeALU(insn){
+        const op=(insn>>>21)&0xf, s=(insn>>>20)&1;
+        switch(op){
+            case 0x0: return Opcode.AND;  case 0x1: return Opcode.EOR;
+            case 0x2: return Opcode.SUB;  case 0x3: return Opcode.RSB;
+            case 0x4: return Opcode.ADD;  case 0x5: return Opcode.ADC;
+            case 0x6: return Opcode.SBC;  case 0x7: return Opcode.RSC;
+            case 0x8: return s ? Opcode.TST : Opcode.MRS;
+            case 0x9: return s ? Opcode.TEQ : Opcode.MSR;
+            case 0xA: return s ? Opcode.CMP : Opcode.MRS;
+            case 0xB: return s ? Opcode.CMN : Opcode.MSR;
+            case 0xC: return Opcode.ORR;  case 0xD: return Opcode.MOV;
+            case 0xE: return Opcode.BIC;  case 0xF: return Opcode.MVN;
+        }
+        return Opcode.INVALID;
+    }
+    function Disassemble(addr, insn) {
+        if((insn & 0xFF000000) === 0xED000000) return "Undefined (Gateway Special)";
+        const opcode = Decode(insn);
+        const simpleDisassemblers = {
+            [Opcode.INVALID]: () => "Invalid Instruction",
+            [Opcode.UNDEFINED]: () => "Undefined Instruction",
+            [Opcode.B]: (a, o, i) => DisassembleBranch(a, o, i),
+            [Opcode.BL]: (a, o, i) => DisassembleBranch(a, o, i),
+            [Opcode.BX]: (a, o, i) => DisassembleBX(i),
+            [Opcode.LDR]: (a, o, i) => DisassembleMem(i),
+            [Opcode.LDRB]: (a, o, i) => DisassembleMem(i),
+            [Opcode.STR]: (a, o, i) => DisassembleMem(i),
+            [Opcode.STRB]: (a, o, i) => DisassembleMem(i),
+        };
+        if (simpleDisassemblers[opcode]) return simpleDisassemblers[opcode](addr, opcode, insn);
+        if (opcode >= Opcode.ADC && opcode <= Opcode.MVN) {
+             if (opcode === Opcode.MRS || opcode === Opcode.MSR) return "MRS/MSR (not fully implemented)";
+            return DisassembleALU(opcode, insn);
+        }
+        return `${(opcode_names[opcode] || `Unknown (${opcode})`)}${cond_to_str((insn>>>28)&0xf)}`;
+    }
+    return { Disassemble };
+})();
+const ARM_Asm = (function(){
+    const RegNames = ["r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","r11","r12","sp","lr","pc"];
+    function encodeImmediate(value) {
+        if (value >= 0 && value <= 0xFF) return { imm: value, rot: 0 };
+        for (let rotate = 1; rotate < 16; rotate++) {
+            const shift = rotate * 2;
+            const rotated_val = ((value >>> shift) | (value << (32 - shift))) >>> 0;
+            if (rotated_val <= 0xFF) return { imm: rotated_val, rot: rotate };
+        }
+        return null;
+    }
+    const assemblers = {
+        b: (params) => {
+            const from = parseInt(params.from, 16);
+            const to = parseInt(params.to, 16);
+            if (isNaN(from) || isNaN(to)) return { error: "Invalid Address" };
+            let offset = (to - (from + 8));
+            if (offset < -33554432 || offset > 33554431) return { error: "Branch out of range (26-bit signed)" }; 
+            offset = (offset >> 2) & 0xFFFFFF;
+            return { B: (0xEA000000 | offset) >>> 0, BL: (0xEB000000 | offset) >>> 0 };
+        },
+        mov_reg: (params) => {
+            const rd = parseInt(params.rd, 10), rm = parseInt(params.rm, 10);
+            if(isNaN(rd) || isNaN(rm)) return null;
+            return (0xE1A00000 | (rd << 12) | rm) >>> 0;
+        },
+        mov_imm: (params) => {
+            const rd = parseInt(params.rd, 10), imm_val = parseInt(params.imm, 16);
+            if(isNaN(rd) || isNaN(imm_val)) return null;
+            const encoded = encodeImmediate(imm_val);
+            if (!encoded) return { warning: "Immediate cannot be encoded in one instruction. Use LDR." };
+            return (0xE3A00000 | (rd << 12) | (encoded.rot << 8) | encoded.imm) >>> 0;
+        },
+        add_reg: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10), rm = parseInt(params.rm, 10);
+            if(isNaN(rd) || isNaN(rn) || isNaN(rm)) return null;
+            return (0xE0800000 | (rn << 16) | (rd << 12) | rm) >>> 0;
+        },
+        add_imm: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10), imm_val = parseInt(params.imm, 16);
+            if(isNaN(rd) || isNaN(rn) || isNaN(imm_val)) return null;
+            const encoded = encodeImmediate(imm_val);
+            if (!encoded) return { warning: "Immediate cannot be encoded." };
+            return (0xE2800000 | (rn << 16) | (rd << 12) | (encoded.rot << 8) | encoded.imm) >>> 0;
+        },
+        sub_reg: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10), rm = parseInt(params.rm, 10);
+            if(isNaN(rd) || isNaN(rn) || isNaN(rm)) return null;
+            return (0xE0400000 | (rn << 16) | (rd << 12) | rm) >>> 0;
+        },
+        sub_imm: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10), imm_val = parseInt(params.imm, 16);
+            if(isNaN(rd) || isNaN(rn) || isNaN(imm_val)) return null;
+            const encoded = encodeImmediate(imm_val);
+            if (!encoded) return { warning: "Immediate cannot be encoded." };
+            return (0xE2400000 | (rn << 16) | (rd << 12) | (encoded.rot << 8) | encoded.imm) >>> 0;
+        },
+        cmp_reg: (params) => {
+            const rn = parseInt(params.rn, 10), rm = parseInt(params.rm, 10);
+            if(isNaN(rn) || isNaN(rm)) return null;
+            return (0xE1500000 | (rn << 16) | rm) >>> 0;
+        },
+        cmp_imm: (params) => {
+            const rn = parseInt(params.rn, 10), imm_val = parseInt(params.imm, 16);
+            if(isNaN(rn) || isNaN(imm_val)) return null;
+            const encoded = encodeImmediate(imm_val);
+            if (!encoded) return { warning: "Immediate cannot be encoded." };
+            return (0xE3500000 | (rn << 16) | (encoded.rot << 8) | encoded.imm) >>> 0;
+        },
+        ldr_imm: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10);
+            const offset = parseInt(params.offset, 16);
+            if (isNaN(rd) || isNaN(rn) || isNaN(offset)) return null;
+            if (offset > 0xFFF || offset < -0xFFF) return { warning: "Offset must be within +/- 4095 (0xFFF)." };
+            const U = offset >= 0 ? 1 : 0;
+            const abs_offset = Math.abs(offset);
+            return (0xE5900000 | (U << 23) | (rn << 16) | (rd << 12) | abs_offset) >>> 0;
+        },
+        str_imm: (params) => {
+            const rd = parseInt(params.rd, 10), rn = parseInt(params.rn, 10);
+            const offset = parseInt(params.offset, 16);
+            if (isNaN(rd) || isNaN(rn) || isNaN(offset)) return null;
+            if (offset > 0xFFF || offset < -0xFFF) return { warning: "Offset must be within +/- 4095 (0xFFF)." };
+            const U = offset >= 0 ? 1 : 0;
+            const abs_offset = Math.abs(offset);
+            return (0xE5800000 | (U << 23) | (rn << 16) | (rd << 12) | abs_offset) >>> 0;
+        }
+    };
+    return { encode: (op, params) => assemblers[op] ? assemblers[op](params) : null, RegNames };
+})();
+function disassembleInput() {
+  const lines = document.getElementById("disasm-input").value.trim().split('\n');
+  const output = [];
+  for (let line of lines) {
+    line = line.trim(); if (!line) continue;
+    const parts = line.split(/\s+/);
+    if (parts.length < 2) continue;
+    const addrStr = parts[0].replace(/[^0-9a-fA-F]/g, '');
+    const codeStr = parts[1].replace(/[^0-9a-fA-F]/g, '');
+    if (addrStr.length === 0 || codeStr.length === 0) continue;
+    const addr = parseInt(addrStr, 16);
+    const code = parseInt(codeStr, 16);
+    const decoded = ARM_Disasm.Disassemble(addr, code);
+    output.push(`${Utils.ToHex(addr)}: ${Utils.ToHex(code)} => ${decoded}`);
+  }
+  document.getElementById("disasm-output").textContent = output.join('\n');
+}
+function setupAsmFields() {
+    const op = document.getElementById('asm-op-selector').value;
+    const container = document.getElementById('asm-fields-container');
+    container.innerHTML = '';
+    const regOptions = ARM_Asm.RegNames.map((r,i) => `<option value="${i}">${r}</option>`).join('');
+    const createGroup = (id, label, content) => `<div class="form-group"><label for="${id}">${label}:</label>${content}</div>`;
+    const createInput = (id, pattern="[0-9a-fA-F]{1,8}", placeholder="") => `<input type="text" id="${id}" pattern="${pattern}" placeholder="${placeholder}" oninput="this.value = this.value.toUpperCase()" style="width:100px;">`;
+    const createSelect = (id, options) => `<select id="${id}" style="width:80px;">${options}</select>`;
+    switch(op) {
+        case 'b':
+            container.innerHTML = createGroup('asm_from', 'Addr', createInput('asm_from')) + createGroup('asm_to', 'Dest', createInput('asm_to')); break;
+        case 'mov_reg':
+            container.innerHTML = createGroup('asm_rd', 'Rd', createSelect('asm_rd', regOptions)) + createGroup('asm_rm', 'Rm', createSelect('asm_rm', regOptions)); break;
+        case 'mov_imm':
+            container.innerHTML = createGroup('asm_rd', 'Rd', createSelect('asm_rd', regOptions)) + createGroup('asm_imm', 'Imm', createInput('asm_imm')); break;
+        case 'add_reg': case 'sub_reg':
+            container.innerHTML = createGroup('asm_rd', 'Rd', createSelect('asm_rd', regOptions)) + createGroup('asm_rn', 'Rn', createSelect('asm_rn', regOptions)) + createGroup('asm_rm', 'Rm', createSelect('asm_rm', regOptions)); break;
+        case 'add_imm': case 'sub_imm':
+            container.innerHTML = createGroup('asm_rd', 'Rd', createSelect('asm_rd', regOptions)) + createGroup('asm_rn', 'Rn', createSelect('asm_rn', regOptions)) + createGroup('asm_imm', 'Imm', createInput('asm_imm')); break;
+        case 'cmp_reg':
+            container.innerHTML = createGroup('asm_rn', 'Rn', createSelect('asm_rn', regOptions)) + createGroup('asm_rm', 'Rm', createSelect('asm_rm', regOptions)); break;
+        case 'cmp_imm':
+            container.innerHTML = createGroup('asm_rn', 'Rn', createSelect('asm_rn', regOptions)) + createGroup('asm_imm', 'Imm', createInput('asm_imm')); break;
+        case 'ldr_imm': case 'str_imm':
+            container.innerHTML = createGroup('asm_rd', 'Rd', createSelect('asm_rd', regOptions)) + createGroup('asm_rn', 'Rn', createSelect('asm_rn', regOptions)) + createGroup('asm_offset', 'Off(Hex)', createInput('asm_offset', "[0-9a-fA-F]{1,3}", "+/- 0xFFF")); break;
+    }
+}
+document.getElementById('asm-op-selector').addEventListener('change', setupAsmFields);
+function encodeAsmInstruction() {
+    const op = document.getElementById('asm-op-selector').value;
+    const resultEl = document.getElementById('asm-result');
+    const warningEl = document.getElementById('asm-warning');
+    const params = {};
+    document.querySelectorAll('#asm-fields-container input, #asm-fields-container select').forEach(input => {
+        params[input.id.replace('asm_', '')] = input.value;
+    });
+    warningEl.textContent = ''; resultEl.textContent = 'Processing...';
+    const result = ARM_Asm.encode(op, params);
+    if (result === null) { warningEl.textContent = "Error: Invalid Input"; resultEl.textContent = ''; return; }
+    if (typeof result === 'object') {
+        if(result.error) { warningEl.textContent = `Error: ${result.error}`; resultEl.textContent = ''; } 
+        else if (result.warning) { warningEl.textContent = `Warning: ${result.warning}`; resultEl.textContent = `CODE: ${Utils.ToHex(result.instruction !== undefined ? result.instruction : result)}`; } 
+        else if (result.B !== undefined && result.BL !== undefined) { resultEl.textContent = `B : ${Utils.ToHex(result.B)}\nBL: ${Utils.ToHex(result.BL)}`; } 
+        else { resultEl.textContent = `CODE: ${Utils.ToHex(result)}`; }
+    } else { resultEl.textContent = `CODE: ${Utils.ToHex(result)}`; }
+}
+class Calculator {
+    constructor(displayElement, modeToggleButtons, hexButtons) {
+        this.displayElement = displayElement;
+        this.modeToggleButtons = modeToggleButtons;
+        this.hexButtons = hexButtons;
+        this.mode = 'DEC';
+        this.clear();
+        this.registerEventListeners();
+    }
+    clear() { this.currentOperand = '0'; this.previousOperand = ''; this.operation = undefined; this.updateDisplay(); }
+    delete() { if (this.currentOperand === 'Error' || this.currentOperand === 'NaN') { this.clear(); return; } if (this.currentOperand.length <= 1) { this.currentOperand = '0'; } else { this.currentOperand = this.currentOperand.slice(0, -1); } this.updateDisplay(); }
+    appendNumber(number) { if (this.currentOperand === 'Error' || this.currentOperand === 'NaN') { this.currentOperand = '0'; } if (number === '.' && this.currentOperand.includes('.') && this.mode === 'DEC') return; if (this.currentOperand === '0' && number !== '.') { this.currentOperand = number; } else { this.currentOperand += number; } this.updateDisplay(); }
+    chooseOperation(operation) { if (this.currentOperand === '' && this.previousOperand !== '') { this.operation = operation; return; } if (this.previousOperand !== '') { this.compute(); } this.operation = operation; this.previousOperand = this.currentOperand; this.currentOperand = ''; }
+    compute() { let result; const prev = this.mode === 'HEX' ? parseInt(this.previousOperand, 16) : parseFloat(this.previousOperand); const current = this.mode === 'HEX' ? parseInt(this.currentOperand, 16) : parseFloat(this.currentOperand); if (isNaN(prev) || isNaN(current)) return; switch (this.operation) { case '+': result = prev + current; break; case '-': result = prev - current; break; case '×': result = prev * current; break; case '÷': if (current === 0) { this.currentOperand = 'Error'; this.updateDisplay(); this.previousOperand = ''; this.operation = undefined; return; } result = prev / current; break; default: return; } if (this.mode === 'HEX') { this.currentOperand = (result >>> 0).toString(16).toUpperCase(); } else { this.currentOperand = result.toString(); } this.operation = undefined; this.previousOperand = ''; this.updateDisplay(); }
+    handleFunction(func) { let value = this.mode === 'HEX' ? parseInt(this.currentOperand, 16) : parseFloat(this.currentOperand); if (isNaN(value)) return; let result; switch(func) { case '√': result = value < 0 ? NaN : Math.sqrt(value); break; case 'x²': result = Math.pow(value, 2); break; case 'sin': result = Math.sin(value * (this.mode === 'DEC' ? Math.PI / 180 : 1)); break; case 'cos': result = Math.cos(value * (this.mode === 'DEC' ? Math.PI / 180 : 1)); break; case 'tan': result = Math.tan(value * (this.mode === 'DEC' ? Math.PI / 180 : 1)); break; case 'log': result = value <= 0 ? NaN : Math.log10(value); break; case 'ln': result = value <= 0 ? NaN : Math.log(value); break; case '±': result = value * -1; break; default: return; } if (isNaN(result) || !isFinite(result)) { this.currentOperand = 'Error'; } else if (this.mode === 'HEX') { this.currentOperand = (Math.trunc(result) >>> 0).toString(16).toUpperCase(); } else { this.currentOperand = result.toString(); } this.updateDisplay(); }
+    changeMode(newMode) { if (this.mode === newMode) return; if (this.previousOperand !== '') this.compute(); try { if (this.currentOperand === 'Error' || this.currentOperand === 'NaN') { this.currentOperand = '0'; } let value; if (this.mode === 'DEC') { value = Math.trunc(parseFloat(this.currentOperand)); if (isNaN(value)) throw new Error(); this.currentOperand = (value >>> 0).toString(16).toUpperCase(); } else { value = parseInt(this.currentOperand, 16); if (isNaN(value)) throw new Error(); this.currentOperand = value.toString(10); } } catch (e) { this.currentOperand = 'Error'; } this.mode = newMode; this.toggleHexButtons(); this.updateDisplay(); }
+    toggleHexButtons() { const disabled = this.mode === 'DEC'; this.hexButtons.forEach(button => button.disabled = disabled); const decimalPointButton = document.querySelector('.calc-button[data-calc-number="."]'); if (decimalPointButton) { decimalPointButton.disabled = !disabled; } }
+    getDisplayNumber(number) { if (number === 'Error' || number === 'NaN') return number; const stringNumber = number.toString(); if (this.mode === 'DEC') { try { const parts = stringNumber.split('.'); const integerPart = BigInt(parts[0]).toLocaleString('en-US'); return parts.length > 1 ? `${integerPart}.${parts[1]}` : integerPart; } catch { return stringNumber; } } return stringNumber.toUpperCase(); }
+    updateDisplay() { this.displayElement.value = this.getDisplayNumber(this.currentOperand); }
+    registerEventListeners() { document.querySelectorAll('[data-calc-number]').forEach(button => { button.addEventListener('click', () => this.appendNumber(button.innerText)); }); document.querySelectorAll('[data-calc-operation]').forEach(button => { button.addEventListener('click', () => this.chooseOperation(button.innerText)); }); document.querySelector('[data-calc-equals]').addEventListener('click', () => this.compute()); document.querySelector('[data-calc-clear]').addEventListener('click', () => this.clear()); document.querySelector('[data-calc-delete]').addEventListener('click', () => this.delete()); document.querySelectorAll('[data-calc-function]').forEach(button => { button.addEventListener('click', () => this.handleFunction(button.dataset.calcFunction)); }); this.modeToggleButtons.forEach(radio => { radio.addEventListener('change', (e) => this.changeMode(e.target.value)); }); }
+}
+class Model {
+    constructor() { this.blocks = []; this.nextBlockId = 0; this.memo = ''; this.loadState(); }
+    addBlock(type) { const blockDef = CODE_DEFINITIONS[type]; if (!blockDef) return null; const newBlock = { id: this.nextBlockId++, type: type, fields: {}, collapsed: false }; blockDef.fields.forEach(field => { newBlock.fields[field.id] = field.default !== undefined ? field.default : ''; }); this.blocks.push(newBlock); this.saveState(); return newBlock; }
+    updateBlockField(blockId, fieldId, value) { const block = this.blocks.find(b => b.id === blockId); if (block) { block.fields[fieldId] = value; this.saveState(); } }
+    toggleCollapse(blockId) { const block = this.blocks.find(b => b.id === blockId); if (block) { block.collapsed = !block.collapsed; this.saveState(); } }
+    deleteBlock(blockId) { this.blocks = this.blocks.filter(b => b.id !== blockId); this.saveState(); }
+    duplicateBlock(blockId) { const originalIndex = this.blocks.findIndex(b => b.id === blockId); if (originalIndex === -1) return; const newBlock = JSON.parse(JSON.stringify(this.blocks[originalIndex])); newBlock.id = this.nextBlockId++; this.blocks.splice(originalIndex + 1, 0, newBlock); this.saveState(); }
+    clearAll() { if (!confirm("WARNING: Purge all blocks? This action cannot be undone.")) return; this.blocks = []; this.saveState(); }
+    reorderBlocks(newIdOrder) { this.blocks.sort((a, b) => newIdOrder.indexOf(a.id) - newIdOrder.indexOf(b.id)); this.saveState(); }
+    import(text) { const lines = text.trim().split(/[\r\n]+/).map(l => l.trim().toUpperCase().replace(/\s+/g, ' ')).filter(l => l); if (lines.length === 0) { alert("No valid code found."); return; } if (this.blocks.length > 0 && !confirm("Clear existing blocks before import?")) return; this.blocks = []; this.nextBlockId = 0; const parsers = []; for (const [key, def] of Object.entries(CODE_DEFINITIONS)) { if (def.parser) { parsers.push({ key, parser: def.parser, priority: def.parser_priority || 1 }); } } parsers.sort((a, b) => b.priority - a.priority); let i = 0; while(i < lines.length) { let consumed = 0; let added = false; for (const p of parsers) { const result = p.parser(lines.slice(i)); if (result && result.consumedLines > 0) { this.blocks.push({ id: this.nextBlockId++, type: p.key, fields: result.fields, collapsed: false }); consumed = result.consumedLines; added = true; break; } } if (added) { i += consumed; } else { const rawResult = CODE_DEFINITIONS.raw_code.parser(lines.slice(i)); if (rawResult) { this.blocks.push({ id: this.nextBlockId++, type: 'raw_code', fields: rawResult.fields, collapsed: false }); i++; } else { console.warn("Skipping unparsable line:", lines[i]); i++; } } } this.saveState(); }
+    saveState() { localStorage.setItem('arCodeEditor_blocks', JSON.stringify(this.blocks)); localStorage.setItem('arCodeEditor_nextId', this.nextBlockId); localStorage.setItem('arCodeEditor_memo', this.memo); }
+    loadState() { try { const savedBlocks = localStorage.getItem('arCodeEditor_blocks'); const savedNextId = localStorage.getItem('arCodeEditor_nextId'); if (savedBlocks) { this.blocks = JSON.parse(savedBlocks); this.nextBlockId = savedNextId ? parseInt(savedNextId) : (this.blocks.length ? Math.max(...this.blocks.map(b => b.id)) + 1 : 0); } this.memo = localStorage.getItem('arCodeEditor_memo') || ''; } catch (e) { console.error("Failed to load state", e); this.blocks = []; this.nextBlockId = 0; this.memo = ''; } }
+}
+const model = new Model();
+const CODE_DEFINITIONS = {};
+function populateDefinitions() {
+    const hex = (len) => `^[0-9a-fA-F]{1,${len}}$`;
+    const hexData = () => `^([0-9a-fA-F]{1,8}(\\s[0-9a-fA-F]{1,8})*\\s*)*$`;
+    const toInt = (val) => parseInt(String(val), 16) || 0;
+    const KEY_DEFS = { '1':'A', '2':'B', '4':'Select', '8':'Start', '10':'Right', '20':'Left', '40':'Up', '80':'Down', '100':'R', '200':'L', '400':'X', '800':'Y', '1000':'DEBUG', '2000':'GEOLOC', '4000':'ZL', '8000':'ZR', '100000':'Touch', '1000000':'C-Right', '2000000':'C-Left', '4000000':'C-Up', '8000000':'C-Down', '10000000':'Pad-Right', '20000000':'Pad-Left', '40000000':'Pad-Up', '80000000':'Pad-Down' };
+    const offsetRegs = { '0': 'Offset#1', '1': 'Offset#2' };
+    const dataRegs = { '0': 'Data#1', '1': 'Data#2' };
+    const storageRegs = { '0': 'Storage#1', '1': 'Storage#2' };
+    const COND_MODES = { '0':'[Addr] vs Val', '1':'Data vs [Addr]', '2':'Val vs Data', '3':'Val vs Storage', '4':'Data vs Storage' };
+    const REG_TYPES = { '0': 'Offset', '1': 'Data', '2': 'Storage' };
+    const VFP_STATES = { '0': 'Disable', '1': 'Enable', '10':'Disable & Convert', '11':'Enable & Convert' };
+    const singleLineParser = (pattern, fn) => (lines) => { if (!lines || lines.length === 0) return null; const line = lines[0]; const parts = line.split(/\s+/); if (parts.length < 2) return null; const [leftStr, rightStr] = parts; if (!new RegExp(pattern, 'i').test(leftStr)) return null; const fields = fn(leftStr, rightStr); return fields ? { fields, consumedLines: 1 } : null; };
+    const dataParser = (headerPattern, dataFn) => (lines) => { if (!lines || lines.length === 0) return null; const [leftStr, rightStr] = lines[0].split(/\s+/); if (!new RegExp(headerPattern, 'i').test(leftStr)) return null; const { fields, dataSizeBytes } = dataFn(leftStr, rightStr); if (!fields || dataSizeBytes === undefined) return null; if (dataSizeBytes <= 0) return { fields, consumedLines: 1 }; const dataLinesNeeded = Math.ceil(dataSizeBytes / 8); if (lines.length < 1 + dataLinesNeeded) return null; const dataWords = lines.slice(1, 1 + dataLinesNeeded).join(' ').trim().split(/\s+/); fields.data = dataWords.join(' '); return { fields, consumedLines: 1 + dataLinesNeeded }; };
+    const colorizeCode = (left, right) => {
+        const l = toInt(left); const lStr = Utils.ToHex(l); const rStr = Utils.ToHex(toInt(right));
+        let type_raw = l >>> 24; let type = type_raw; if ((type_raw & 0xF0) < 0xC0 && (type_raw & 0xF0) !== 0xE0) type = type_raw & 0xF0;
+        const S = (str, cls) => `<span class="${cls}">${str}</span>`;
+        const T = (len, s=lStr) => S(s.substring(0, len), 'code-type'); const A = (s, l, str=lStr) => S(str.substring(s, s+l), 'code-address'); const O = (s, l, str=lStr) => S(str.substring(s, s+l), 'code-offset'); const V = (str=rStr) => S(str, 'code-immediate'); const M = (s, l, str=rStr) => S(str.substring(s, s+l), 'code-mask'); const C = (s, l, str=lStr) => S(str.substring(s, s+l), 'code-control'); const U = (s, l, str=lStr) => S(str.substring(s, s+l), 'code-unused'); const E = () => S(`${lStr} ${rStr}`, 'code-error');
+        switch (type & 0xF0) { case 0x00: return T(1) + A(1, 7) + ' ' + V(); case 0x10: return T(1) + A(1, 7) + ' ' + U(0, 4, rStr) + V(rStr.substring(4)); case 0x20: return T(1) + A(1, 7) + ' ' + U(0, 6, rStr) + V(rStr.substring(6)); case 0x30: case 0x40: case 0x50: case 0x60: return T(1) + A(1, 7) + ' ' + V(); case 0x70: case 0x80: case 0x90: case 0xA0: return T(1) + A(1, 7) + ' ' + M(0, 4) + V(rStr.substring(4)); case 0xB0: return T(1) + A(1, 7) + ' ' + U(0, 8, rStr); case 0xE0: return T(1) + A(1, 7) + ' ' + V(); }
+        switch (type) { case 0xC0: case 0xC1: case 0xC2: return T(2) + U(2, 6) + ' ' + (toInt(right) ? V() : U(0, 8, rStr)); case 0xD0: return T(2) + U(2, 6) + ' ' + (rStr==='00000001' ? C(0,8,rStr) : U(0,8,rStr)); case 0xD1: return T(2) + U(2, 6) + ' ' + U(0, 8, rStr); case 0xD2: return T(2) + U(2, 6) + ' ' + (rStr==='00000001' ? C(0,8,rStr) : U(0,8,rStr)); case 0xD3: case 0xD5: return T(2) + C(2, 6) + ' ' + V(); case 0xDC: return T(2) + U(2, 6) + ' ' + V(); case 0xD4: case 0xD6: case 0xD7: case 0xD8: case 0xD9: case 0xDA: case 0xDB: return T(2) + C(2, 6) + ' ' + O(0, 8, rStr); case 0xDD: return T(2) + U(2, 6) + ' ' + V(); case 0xDE: return T(2) + C(2, 1) + U(3,5) + ' ' + M(0, 4) + V(rStr.substring(4)); case 0xDF: if ((l & 0xFFFFFF) === 0xFFFFFF) return T(2) + U(2, 1) + C(3, 5) + ' ' + U(0, 7, rStr) + V(rStr.substring(7)); if ((l & 0xFFFFFF) === 0xFFFFFE) return T(2) + U(2, 1) + C(3, 5) + ' ' + U(0, 6, rStr) + C(6,1,rStr) + V(rStr.substring(7)); return T(2) + C(2, 6) + ' ' + M(0, 4) + V(rStr.substring(4)); case 0xF0: if ((l & 0x00FFFFFF) === 0xF00000) return T(2) + C(2, 6) + ' ' + V(); if ((l & 0x00FFFFFF) === 1) return T(2) + U(2,5) + C(7,1) + ' ' + U(0,7,rStr) + V(rStr.substring(7)); return E(); case 0xF1: case 0xF2: case 0xF3: case 0xFE: case 0xFF: return T(2) + A(2, 6) + ' ' + V(); case 0xF4: case 0xF5: case 0xF6: case 0xF7: case 0xF8: case 0xFA: case 0xFB: return T(2) + U(2, 6) + ' ' + V(); case 0xF9: return T(2) + U(2, 6) + ' ' + U(0, 8, rStr); case 0xFC: return T(2) + U(2, 6) + ' ' + V(); case 0xFD: return T(2) + C(2, 6) + ' ' + V(); }
+        return E();
+    };
+    const getCondStr = (f, ctx) => { const op={'3':'>','4':'<','5':'==','6':'!='}[f.type] || 'op'; const mode = ctx.condMode || 0; const addr = f.address || '0'; const val = f.value || '0'; let mainPart; if (f.bit === '32') { if (mode == 0) mainPart = `[0x${addr}+offs] ${op} 0x${val}`; else if (mode == 1) mainPart = `Data ${op} [0x${addr}+offs]`; else if (mode == 2) mainPart = `0x${val} ${op} Data`; else if (mode == 3) mainPart = `0x${val} ${op} Storage`; else if (mode == 4) mainPart = `Data ${op} Storage`; } else { const mask = f.mask !== 'FFFF' ? ` & 0x${f.mask}`:''; if (mode == 0) mainPart = `([0x${addr}+offs]${mask}) ${op} 0x${val}`; else if (mode == 1) mainPart = `Data ${op} ([0x${addr}+offs]${mask})`; else if (mode == 2) mainPart = `0x${val} ${op} (Data${mask})`; else if (mode == 3) mainPart = `0x${val} ${op} (Storage${mask})`; else if (mode == 4) mainPart = `Data ${op} (Storage${mask})`; } return `if ( ${mainPart} )`; };
+    const keysToStr = (val) => Object.entries(KEY_DEFS).filter(([v,_])=>(val & parseInt(v,16))).map(([_,n])=>n).join('+') || '(None)';
+    Object.assign(CODE_DEFINITIONS, {
+        'write_32': { name: '32bit Write', category: 'Write', fields: [{id:'address',label:'Address',type:'text',pattern:hex(7),required:true},{id:'value',label:'Value (Hex)',type:'text',pattern:hex(8),required:true}], generator: f => `0${Utils.ToHex(toInt(f.address), 7)} ${Utils.ToHex(toInt(f.value))}`, commentator: f => `[0x${f.address || '0'} + offs] = 0x${f.value || '0'}`, parser: singleLineParser('^0[0-9A-F]{7}', (l,r) => ({address: l.substring(1), value: r})) },
+        'write_16': { name: '16bit Write', category: 'Write', fields: [{id:'address',label:'Address',type:'text',pattern:hex(7),required:true},{id:'value',label:'Value (Hex)',type:'text',pattern:hex(4),required:true}], generator: f => `1${Utils.ToHex(toInt(f.address), 7)} 0000${Utils.ToHex(toInt(f.value), 4)}`, commentator: f => `[0x${f.address || '0'} + offs] = 0x${f.value || '0'} (16bit)`, parser: singleLineParser('^1[0-9A-F]{7}', (l,r) => ({address: l.substring(1), value: r.substring(4)})) },
+        'write_8': { name: '8bit Write', category: 'Write', fields: [{id:'address',label:'Address',type:'text',pattern:hex(7),required:true},{id:'value',label:'Value (Hex)',type:'text',pattern:hex(2),required:true}], generator: f => `2${Utils.ToHex(toInt(f.address), 7)} 000000${Utils.ToHex(toInt(f.value), 2)}`, commentator: f => `[0x${f.address || '0'} + offs] = 0x${f.value || '0'} (8bit)`, parser: singleLineParser('^2[0-9A-F]{7}', (l,r) => ({address: l.substring(1), value: r.substring(6)})) },
+        'if_cond': { name: 'If Condition', category: 'Condition', fields: [{id:'type',label:'Op',type:'select',options:{'3':'>','4':'<','5':'==','6':'!='},default:'5'},{id:'bit',label:'Size',type:'radio',options:{'32':'32bit','16':'16bit'},default:'32'},{id:'address',label:'Address',type:'text',pattern:hex(7),required:true},{id:'value',label:'Value',type:'text',pattern:hex(8),required:true},{id:'mask',label:'Mask(16bit)',type:'text',pattern:hex(4),default:'FFFF',condition:f=>f.bit==='16'}], generator: f => { const tn=toInt(f.type)+(f.bit==='16'?4:0); return `${Utils.ToHex(tn, 1)}${Utils.ToHex(toInt(f.address),7)} ${f.bit==='16'?`${Utils.ToHex((~toInt(f.mask)) & 0xFFFF, 4)}${Utils.ToHex(toInt(f.value),4)}` : Utils.ToHex(toInt(f.value))}`; }, commentator: (f, ctx) => getCondStr(f, ctx), parser: singleLineParser('^[3456789A][0-9A-F]{7}', (l,r) => { const tn=toInt(l[0]); const is16 = tn >= 7 && tn <= 10; return { type: String(is16?tn-4:tn), bit: is16?'16':'32', address: l.substring(1), value: is16?r.substring(4):r, mask: is16?Utils.ToHex((~toInt(r.substring(0,4)))&0xFFFF,4):'FFFF' }}) },
+        'button_press': { name: 'Key Check', category: 'Condition', fields: [{ id: 'keys', label: 'Keys', type: 'checkbox_group', options: KEY_DEFS, default:0 }], generator: f => `DD000000 ${Utils.ToHex(f.keys || 0)}`, commentator: f => `if ( Keys == ${keysToStr(f.keys || 0)} )`, parser: singleLineParser('^DD000000', (l, r) => ({ keys: toInt(r) })) },
+        'touch_press': { name: 'Touch Check', category: 'Condition', fields: [{id:'axis',label:'Axis',type:'radio',options:{'0':'X','1':'Y'},default:'0'},{id:'min',label:'Min',type:'text',pattern:hex(4),required:true},{id:'max',label:'Max',type:'text',pattern:hex(4),required:true}], generator: f => `DE00000${f.axis} ${Utils.ToHex(toInt(f.min), 4)}${Utils.ToHex(toInt(f.max), 4)}`, commentator: f => `if ( Touch.${f.axis==='0'?'X':'Y'} in [${Utils.ToHex(toInt(f.min),4)}, ${Utils.ToHex(toInt(f.max),4)}] )`, parser: singleLineParser('^DE00000[01]', (l,r)=>({axis:l[7],min:r.substring(0,4),max:r.substring(4)})) },
+        'read_pointer': { name: 'Read Pointer', category: 'Register', fields: [{id:'address',label:'Address',type:'text',pattern:hex(7),required:true}], generator: f => `B${Utils.ToHex(toInt(f.address), 7)} 00000000`, commentator: f => `Offset = [0x${f.address || '0'} + Offset]`, parser: singleLineParser('^B[0-9A-F]{7}', l => ({address:l.substring(1)}))},
+        'set_offset': { name: 'Set Offset', category: 'Register', fields: [{id:'target',label:'Target',type:'select',options:offsetRegs,default:'0'},{id:'value',label:'Value',type:'text',pattern:hex(8),required:true}], generator: f => `D300000${f.target} ${Utils.ToHex(toInt(f.value))}`, commentator: f => `${offsetRegs[f.target]} = 0x${f.value || '0'}`, parser: singleLineParser('^D300000[01]', (l,r) => ({target:l[7],value:r}))},
+        'add_offset': { name: 'Add to Offset', category: 'Register', fields: [{id:'value',label:'Value',type:'text',pattern:hex(8),required:true}], generator: f => `DC000000 ${Utils.ToHex(toInt(f.value))}`, commentator: f => `Offset += 0x${f.value || '0'}`, parser: singleLineParser('^DC000000', (l,r) => ({value:r}))},
+        'set_data': { name: 'Set Data Reg', category: 'Register', fields: [{id:'target',label:'Target',type:'select',options:{'0':'Active','1':'Data#1','2':'Data#2'},default:'0'},{id:'value',label:'Value',type:'text',pattern:hex(8),required:true}], generator: f => `D500000${f.target} ${Utils.ToHex(toInt(f.value))}`, commentator: f => `${{'0':'Active Data','1':'Data#1','2':'Data#2'}[f.target]} = 0x${f.value || '0'}`, parser: singleLineParser('^D500000[012]', (l,r) => ({target:String(toInt(l[7])),value:r}))},
+        'write_data': { name: 'Write Data Reg', category: 'Write', fields: [{id:'target',label:'Source',type:'select',options:{'0':'Active','1':'Data#1','2':'Data#2'},default:'0'}, {id:'bit',label:'Size',type:'radio',options:{'6':'32bit','7':'16bit','8':'8bit'},default:'6'}, {id:'address',label:'Address',type:'text',pattern:hex(8),required:true}], generator: f => `D${f.bit}00000${f.target} ${Utils.ToHex(toInt(f.address))}`, commentator: f => `[0x${f.address||'0'}+offs] = ${{'0':'Active','1':'Data#1','2':'Data#2'}[f.target]}, offs+=${{'6':4,'7':2,'8':1}[f.bit]}`, parser: singleLineParser('^D[678]00000[012]', (l,r)=>({target:l[7],bit:l[1],address:r})) },
+        'op_data': { name: 'Data Reg Op', category: 'Arithmetic', fields: [{id:'op',label:'Op',type:'select',options:{'4':'+=','f4':'*=','f5':'/=','f6':'&=','f7':'|=','f8':'^=','fa':'<<=','fb':'>>='},default:'4'},{id:'target',label:'Add Mode',type:'select',options:{'0':'D1 += X','1':'D1 += D2 + X','2':'D2 += D1 + X'},default:'0',condition:f=>f.op==='4'},{id:'value',label:'Value (X)',type:'text',pattern:hex(8),required:true}], generator: f => { const op=f.op; if(op==='4') return `D400000${f.target} ${Utils.ToHex(toInt(f.value))}`; else return `${op.toUpperCase()}000000 ${Utils.ToHex(toInt(f.value))}`; }, commentator: f => { const opStr={4:'+=',f4:'*=',f5:'/=',f6:'&=',f7:'|=',f8:'^=',fa:'<<=',fb:'>>='}[f.op]; if(f.op==='4'){return `${{0:'Data#1',1:'Data#1',2:'Data#2'}[f.target]} ${opStr} ${{0:'',1:'Data#2 + ',2:'Data#1 + '}[f.target]}0x${f.value||'0'}`;} return `Active Data ${opStr} 0x${f.value||'0'}`; }, parser: singleLineParser('^(D4|F[4-8A-B])00000[0-9A-F]', (l,r)=> { const t=l.substring(0,2); if(t==='D4')return{op:'4',target:l[7],value:r}; else return{op:t.toLowerCase(),target:'0',value:r}}), parser_priority: 5 },
+        'arith_mem': { name: 'Memory Arithmetic', category: 'Arithmetic', fields: [{id:'op',label:'Op',type:'select',options:{'F1':'+=','F2':'*=','F3':'/='},default:'F1'},{id:'address',label:'Address',type:'text',pattern:hex(6),required:true},{id:'value',label:'Value',type:'text',pattern:hex(8),required:true}], generator: f => `${f.op}${Utils.ToHex(toInt(f.address),6)} ${Utils.ToHex(toInt(f.value))}`, commentator: f => `[0x${f.address||'0'}+offs] ${{'F1':'+=','F2':'*=','F3':'/='}[f.op]} 0x${f.value||'0'}`, parser: singleLineParser('^F[123][0-9A-F]{6}',(l,r)=>({op:l.substring(0,2),address:l.substring(2),value:r})) },
+        'register_op': { name: 'Register Op', category: 'Register', fields: [{id:'op',label:'Op',type:'select',options:{'0':'Select Active','1':'Copy','2':'Copy (Cross)'},default:'0'}, {id:'type',label:'Type',type:'select',options:REG_TYPES,default:'0', condition:f=>f.op!=='1'||f.type!=='2'}, {id:'param',label:'Target',type:'select',options:offsetRegs,default:'0'}], generator: f => { let right = (toInt(f.op)<<16)|toInt(f.param); return `DF00000${toInt(f.type)} ${Utils.ToHex(right)}`; }, commentator: f => `Register Op`, parser: singleLineParser('^DF00000[012]',(l,r)=>({type:l[7],op:String(toInt(r)>>>16),param:String(toInt(r)&0xFFFF)})) },
+        'loop': { name: 'Loop', category: 'Control', fields: [{id:'from',label:'Source',type:'radio',options:{'C0':'Imm','C1':'Data#1','C2':'Data#2'},default:'C0'},{id:'count',label:'Count(Hex)',type:'text',pattern:hex(8),required:true,condition:f=>f.from==='C0'}], generator: f => `${f.from}000000 ${f.from==='C0'?Utils.ToHex(toInt(f.count)):'00000000'}`, commentator: f => `Loop ${f.from==='C0'?`${toInt(f.count)} times`:`${dataRegs[f.from[1]]} times`}`, parser:singleLineParser('^C[012]000000',(l,r)=>({from:l.substring(0,2),count:r})) },
+        'loop_end': { name: 'End Loop/If', category: 'Control', fields:[], generator:()=>`D1000000 00000000`, commentator:()=>`End Loop/If`, parser:singleLineParser('^D1000000',()=>({}))},
+        'terminator_if': { name: 'Terminator (If/Loop)', category: 'Control', fields:[{id:'exit_loop', label:'Action', type:'radio', options:{'0':'End If','1':'Break Loop'}, default:'0'}], generator:f=>`D0000000 ${Utils.ToHex(toInt(f.exit_loop))}`, commentator: f => f.exit_loop==='1'?'Break Loop':'End If', parser:singleLineParser('^D0000000', (l,r)=>({exit_loop:String(toInt(r)&1)}))},
+        'terminator_full': { name: 'Full Terminator', category: 'Control', fields:[{id:'exit', label:'Action', type:'radio', options:{'0':'End All & Clear','1':'Exit Immediately'}, default:'0'}], generator: f => `D2000000 ${Utils.ToHex(toInt(f.exit))}`, commentator: f => f.exit==='1'?'Exit Code':'End All', parser:singleLineParser('^D2000000', (l,r)=>({exit:String(toInt(r)&1)}))},
+        'patch': { name: 'Patch Data', category: 'Advanced', fields: [{id:'address',label:'Address',type:'text',pattern:hex(7),required:true},{id:'data',label:'Data (Hex Words)',type:'textarea',pattern:hexData(),required:true}], generator: f => { const w=(f.data||'').trim().split(/\s+/).filter(Boolean);const s=w.length*4;let l=[`E${Utils.ToHex(toInt(f.address),7)} ${Utils.ToHex(s)}`];for(let i=0;i<w.length;i+=2){l.push(`${Utils.ToHex(toInt(w[i]))} ${w[i+1]?Utils.ToHex(toInt(w[i+1])):'00000000'}`);}return l.join('\n'); }, commentator: f => `Write Data`, parser: dataParser('^E[0-9A-F]{7}',(l,r)=>({fields:{address:l.substring(1)},dataSizeBytes:toInt(r)})), parser_priority: 100 },
+        'raw_code': { name: 'Raw Code', category: 'Misc', fields: [{id:'left',label:'Left',type:'text',pattern:hex(8)},{id:'right',label:'Right',type:'text',pattern:hex(8)}], generator: f => `${Utils.ToHex(toInt(f.left))} ${Utils.ToHex(toInt(f.right))}`, commentator: () => `Raw`, parser: singleLineParser('^[0-9A-F]{8}', (l,r)=>({left:l,right:r})), parser_priority: 0 }
+    });
+    for(const key in CODE_DEFINITIONS) { CODE_DEFINITIONS[key].colorize = (l, r, isData) => isData ? `<span class="code-patch-data">${l} ${r}</span>` : colorizeCode(l,r); }
+}
+populateDefinitions();
+class View {
+    constructor() {
+        this.container = document.getElementById('code-blocks-container');
+        this.outputBody = document.getElementById('output-tbody');
+        this.memoEl = document.getElementById('memo');
+        this.codeSelector = document.getElementById('code-type-selector');
+        this.initEventListeners();
+        this.populateSelector();
+    }
+    initEventListeners() {
+        let draggedItem = null; let placeholder = null;
+        this.container.addEventListener('dragstart', e => { if (e.target.classList.contains('code-block')) { draggedItem = e.target; placeholder = document.createElement('div'); placeholder.className = 'placeholder'; draggedItem.style.opacity = '0.5'; e.dataTransfer.effectAllowed = 'move'; } });
+        this.container.addEventListener('dragend', () => { if (draggedItem) { draggedItem.style.opacity = '1'; placeholder?.remove(); draggedItem = null; placeholder = null; } });
+        this.container.addEventListener('dragover', e => { e.preventDefault(); const afterElement = this.getDragAfterElement(e.clientY); if (afterElement == null) { this.container.appendChild(placeholder); } else { this.container.insertBefore(placeholder, afterElement); } });
+        this.container.addEventListener('drop', e => { e.preventDefault(); if (draggedItem) { placeholder.parentNode.insertBefore(draggedItem, placeholder); const newOrderIds = Array.from(this.container.querySelectorAll('.code-block')).map(el => parseInt(el.dataset.id)); controller.reorderBlocks(newOrderIds); } });
+        this.memoEl.value = model.memo; this.memoEl.addEventListener('input', () => { model.memo = this.memoEl.value; model.saveState(); });
+    }
+    getDragAfterElement(y) { const draggableElements = [...this.container.querySelectorAll('.code-block:not(.placeholder)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; } }, { offset: Number.NEGATIVE_INFINITY }).element; }
+    populateSelector() { const categories = {}; for (const [key, def] of Object.entries(CODE_DEFINITIONS)) { if (!categories[def.category]) categories[def.category] = []; categories[def.category].push({ key, name: def.name }); } const categoryOrder = ['Write', 'Read', 'Condition', 'Register', 'Arithmetic', 'Control', 'Advanced', 'Misc']; const sortedCategories = Object.keys(categories).sort((a,b) => (categoryOrder.indexOf(a) ?? 99) - (categoryOrder.indexOf(b) ?? 99)); this.codeSelector.innerHTML = ''; for (const catName of sortedCategories) { const items = categories[catName]; if (items.length === 0) continue; const optgroup = document.createElement('optgroup'); optgroup.label = catName; items.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => { const option = document.createElement('option'); option.value = item.key; option.textContent = item.name; optgroup.appendChild(option); }); this.codeSelector.appendChild(optgroup); } }
+    createBlockElement(block) {
+        const blockDef = CODE_DEFINITIONS[block.type]; if (!blockDef) return null;
+        const div = document.createElement('div'); div.className = 'code-block'; if(block.collapsed) div.classList.add('collapsed'); div.dataset.id = block.id; div.draggable = true;
+        let contentHtml = '';
+        blockDef.fields.forEach(field => {
+            const isVisible = !field.condition || field.condition(block.fields); contentHtml += `<div class="form-group ${!isVisible ? 'hidden' : ''}" data-condition-field="${field.id}"><label for="field-${block.id}-${field.id}">${field.label}</label>`;
+            const fieldValue = block.fields[field.id] !== undefined ? block.fields[field.id] : (field.default || '');
+            switch(field.type) {
+                case 'text': contentHtml += `<input type="text" id="field-${block.id}-${field.id}" data-field="${field.id}" value="${fieldValue}" placeholder="${field.placeholder || ''}" pattern="${field.pattern}" oninput="this.value = this.value.toUpperCase()">`; break;
+                case 'textarea': contentHtml += `<textarea id="field-${block.id}-${field.id}" data-field="${field.id}" rows="3" oninput="this.value=this.value.toUpperCase()">${fieldValue}</textarea>`; break;
+                case 'select': contentHtml += `<select id="field-${block.id}-${field.id}" data-field="${field.id}">${Object.entries(field.options).map(([val,text])=>`<option value="${val}" ${String(val)===String(fieldValue)?'selected':''}>${text}</option>`).join('')}</select>`; break;
+                case 'radio': contentHtml += `<div class="form-inline">${Object.entries(field.options).map(([val,text])=>`<label><input type="radio" name="radio-${block.id}-${field.id}" value="${val}" ${String(val)===String(fieldValue)?'checked':''} data-field-radio="${field.id}">${text}</label>`).join('')}</div>`; break;
+                case 'checkbox_group': contentHtml += `<div class="checkbox-group" id="field-${block.id}-${field.id}" data-field-group="${field.id}">${Object.entries(field.options).map(([val,text])=>`<label><input type="checkbox" value="${val}" ${(fieldValue&parseInt(val,16))?'checked':''}> ${text}</label>`).join('')}</div>`; break;
+            } contentHtml += `</div>`;
+        });
+        div.innerHTML = `<div class="code-block-header"><div><h3>${blockDef.name}</h3><span class="category">${blockDef.category}</span></div><div class="header-buttons"><button class="duplicate-btn" title="Copy">CPY</button><button class="delete-btn" title="Delete">DEL</button><span class="toggle-icon">▼</span></div></div><div class="code-block-content">${contentHtml}</div>`;
+        div.querySelector('.code-block-header').addEventListener('click', (e) => { if (!e.target.closest('.header-buttons')) controller.toggleCollapse(block.id); });
+        div.querySelector('.duplicate-btn').addEventListener('click', (e) => { e.stopPropagation(); controller.duplicateBlock(block.id); });
+        div.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); controller.deleteBlock(block.id); });
+        div.querySelectorAll('input[data-field], select[data-field], textarea[data-field]').forEach(el => el.addEventListener('input', () => controller.updateBlockField(block.id, el.dataset.field, el.value)));
+        div.querySelectorAll('[data-field-radio]').forEach(el => el.addEventListener('change', () => controller.updateBlockField(block.id, el.dataset.fieldRadio, document.querySelector(`input[name="radio-${block.id}-${el.dataset.fieldRadio}"]:checked`).value)));
+        div.querySelectorAll('.checkbox-group').forEach(g => g.addEventListener('change', () => { let v=0; g.querySelectorAll(':checked').forEach(c=>v|=parseInt(c.value,16)); controller.updateBlockField(block.id, g.dataset.fieldGroup, v); }));
+        return div;
+    }
+    render() {
+        this.container.innerHTML = model.blocks.length ? '' : '<p style="text-align: center; color: var(--text-sub); margin-top: 20px;">[ NO BLOCKS DETECTED ]</p>';
+        model.blocks.forEach(block => this.container.appendChild(this.createBlockElement(block)));
+        this.validateAllBlocks(); model.blocks.forEach(block => this.updateDynamicFields(block.id));
+        this.outputBody.innerHTML = ''; const appendRow = (codeHtml, comment) => { const r=this.outputBody.insertRow(); r.insertCell().innerHTML=codeHtml; r.insertCell().innerHTML=comment.replace(/\n/g, '<br>'); };
+        let interpreterContext = { condMode: 0 };
+        model.blocks.forEach(block => { const blockDef = CODE_DEFINITIONS[block.type]; if (!blockDef || !this.validateBlock(block)) return; const generatedLines = blockDef.generator(block.fields).split('\n'); const comment = typeof blockDef.commentator === 'function' ? blockDef.commentator(block.fields, interpreterContext) : blockDef.commentator; const commentLines = comment.split('\n'); generatedLines.forEach((line, i) => { const parts = line.split(/\s+/); const [l, r] = parts; if (!l || !r) return; const isData = (block.type === 'patch' || block.type === 'asm_routine') && i > 0; const codeHtml = blockDef.colorize ? blockDef.colorize(l, r, isData) : `<span>${l}</span> <span>${r}</span>`; appendRow(codeHtml, commentLines[i] || (i > 0 ? '(Data)' : commentLines[0])); }); if (block.type === 'cond_mode') { interpreterContext.condMode = parseInt(block.fields.mode, 10); } else if (block.type === 'terminator_full' && block.fields.exit === '0') { interpreterContext = { condMode: 0 }; } });
+    }
+    validateBlock(block, markElement = true) { const blockDef = CODE_DEFINITIONS[block.type]; if (!blockDef) return false; let allValid = true; const blockEl = this.container.querySelector(`.code-block[data-id="${block.id}"]`); blockDef.fields.forEach(field => { if (field.condition && !field.condition(block.fields)) return; const value = block.fields[field.id]; let isValid = !(field.required && (value === undefined || String(value).trim() === '')); if (isValid && String(value).trim() !== '' && field.pattern) { isValid = new RegExp(field.pattern, 'i').test(String(value)); } if (markElement && blockEl) { const inputEl = blockEl.querySelector(`[id^="field-${block.id}-${field.id}"]`); if(inputEl) inputEl.classList.toggle('input-error', !isValid); } if (!isValid) allValid = false; }); return allValid; }
+    validateAllBlocks() { model.blocks.forEach(block => this.validateBlock(block, true)); }
+    updateDynamicFields(blockId) { const b = model.blocks.find(bl=>bl.id===blockId); const el = this.container.querySelector(`.code-block[data-id="${blockId}"]`); if(!b||!el) return; const blockDef = CODE_DEFINITIONS[b.type]; if(!blockDef) return; blockDef.fields.forEach(f => { if(f.condition) { const formGroup = el.querySelector(`[data-condition-field="${f.id}"]`); if (formGroup) formGroup.classList.toggle('hidden', !f.condition(b.fields)); } }); }
+}
+const view = new View();
+class Controller {
+    addBlock() { const type = view.codeSelector.value; model.addBlock(type); view.render(); }
+    updateBlockField(bId, fId, val) { model.updateBlockField(bId, fId, val); view.updateDynamicFields(bId); view.render(); }
+    toggleCollapse(bId) { model.toggleCollapse(bId); view.render(); }
+    deleteBlock(bId) { if(confirm("Delete this block?")) { model.deleteBlock(bId); view.render(); } }
+    duplicateBlock(bId) { model.duplicateBlock(bId); view.render(); }
+    clearAllBlocks() { model.clearAll(); view.render(); }
+    reorderBlocks(order) { model.reorderBlocks(order); view.render(); }
+    importCodes() { const t=document.getElementById('import-textarea').value; if(t){model.import(t); document.getElementById('import-textarea').value=''; view.render();} }
+    copyToClipboard() { const c = Array.from(view.outputBody.rows).map(r=>r.cells[0].textContent.trim().replace(/\s+/g,' ')).join('\n'); if(c) navigator.clipboard.writeText(c).then(()=>alert('Copied!'),()=>alert('Failed.')); else alert('No output.');}
+}
+let controller;
+document.addEventListener('DOMContentLoaded', () => { 
+    controller = new Controller();
+    document.getElementById('add-block-btn').addEventListener('click', () => controller.addBlock());
+    document.getElementById('import-btn').addEventListener('click', () => controller.importCodes());
+    document.getElementById('clear-all-btn').addEventListener('click', () => controller.clearAllBlocks());
+    document.getElementById('copy-btn').addEventListener('click', () => controller.copyToClipboard());
+    new Calculator(document.getElementById('calculator-screen'), document.querySelectorAll('input[name="calc-mode"]'), document.querySelectorAll('[data-calc-hex]')).toggleHexButtons();
+    setupAsmFields();
+    view.render();
+});
+</script>
+</body>
+</html>

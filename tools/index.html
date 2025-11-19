@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nex / Tools</title>
+    <style>
+        :root {
+            --color-main: #ffffff;
+            --color-bg: #050505;
+            --color-sub: #888;
+            --color-accent: #00ff99;
+            --color-border: #333;
+            --font-family: 'Courier New', Courier, monospace;
+            --panel-width: 95vw; 
+            --panel-max-width: 1400px; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--color-bg);
+            color: var(--color-main);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::after {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0;
+        }
+        .container {
+            position: relative; z-index: 10;
+            max-width: 1000px; margin: 0 auto; padding: 2rem;
+            transition: filter 0.3s;
+        }
+        body.panel-open .container {
+            filter: blur(5px) brightness(0.3);
+            pointer-events: none;
+        }
+        header {
+            margin-bottom: 4rem; border-bottom: 1px solid var(--color-border);
+            padding-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .page-title { font-size: 1.5rem; font-weight: bold; }
+        .page-title span { color: var(--color-sub); }
+        .back-link { text-decoration: none; color: var(--color-sub); font-size: 0.9rem; transition: 0.3s; }
+        .back-link:hover { color: var(--color-accent); }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        .tool-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--color-border);
+            padding: 1.5rem;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            text-decoration: none;
+            color: var(--color-main);
+            display: flex; flex-direction: column; justify-content: space-between;
+            height: 200px; 
+        }
+        .tool-card:hover {
+            border-color: var(--color-accent);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 255, 153, 0.1);
+        }
+        .tool-card::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+            background: var(--color-accent);
+            transform: scaleY(0); transition: transform 0.3s;
+        }
+        .tool-card:hover::before { transform: scaleY(1); }
+        .tool-icon { font-size: 2rem; margin-bottom: 1rem; color: var(--color-sub); }
+        .tool-card:hover .tool-icon { color: var(--color-accent); }
+        .tool-name { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .tool-desc { font-size: 0.8rem; color: #aaa; line-height: 1.4; }
+        .status-badge {
+            position: absolute; top: 10px; right: 10px;
+            font-size: 0.6rem; padding: 2px 6px; border: 1px solid #444; color: #888;
+        }
+        .status-new { border-color: var(--color-accent); color: var(--color-accent); }
+        #tool-panel {
+            position: fixed; top: 0; right: 0;
+            width: var(--panel-width); max-width: var(--panel-max-width); height: 100%;
+            background: #000;
+            border-left: 1px solid var(--color-accent);
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+            box-shadow: -20px 0 50px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+        }
+        #tool-panel.open { transform: translateX(0); }
+        .panel-bar {
+            height: 50px; background: #111; border-bottom: 1px solid #333;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 1.5rem;
+            flex-shrink: 0;
+        }
+        .panel-title { font-size: 0.9rem; color: #888; }
+        .close-btn {
+            background: none; border: 1px solid #555; color: #fff;
+            padding: 4px 12px; cursor: pointer; font-family: var(--font-family);
+            transition: 0.3s; font-size: 0.8rem;
+        }
+        .close-btn:hover { background: var(--color-accent); color: #000; border-color: var(--color-accent); }
+        #tool-frame {
+            width: 100%; height: 100%; border: none; background: #050505;
+            flex-grow: 1;
+        }
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 90; display: none;
+            backdrop-filter: blur(2px);
+        }
+        #overlay.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="page-title">Nex <span>/ tools</span></div>
+            <a href="../index.html" class="back-link">[ cd .. ]</a>
+        </header>
+        <div class="tools-grid">
+            <div class="tool-card" onclick="openTool('comment-remover.html', 'Comment Remover')">
+                <span class="status-badge">v3.0</span>
+                <div class="tool-icon">/* */</div>
+                <div class="tool-name">Comment Remover</div>
+                <div class="tool-desc">Remove comments from JS, HTML, Python codes instantly.</div>
+            </div>
+            <div class="tool-card" onclick="openTool('ar-code-gen.html', 'AR Code Gen & Calc')">
+                <span class="status-badge status-new">v6.0</span>
+                <div class="tool-icon">0x</div>
+                <div class="tool-name">AR Code Gen</div>
+                <div class="tool-desc">Assembler, Disassembler, Hex Calculator & AR Code Editor for CTRPluginFramework.</div>
+            </div>
+            <div class="tool-card" style="opacity: 0.5; cursor: default;">
+                <span class="status-badge">WIP</span>
+                <div class="tool-icon">?</div>
+                <div class="tool-name">Coming Soon</div>
+                <div class="tool-desc">New tools are under development...</div>
+            </div>
+        </div>
+    </div>
+    <div id="overlay"></div>
+    <div id="tool-panel">
+        <div class="panel-bar">
+            <span class="panel-title" id="panel-title-text">TOOL EXECUTION</span>
+            <button class="close-btn" onclick="closePanel()">[ CLOSE ]</button>
+        </div>
+        <iframe id="tool-frame" src=""></iframe>
+    </div>
+    <script>
+        const panel = document.getElementById('tool-panel');
+        const iframe = document.getElementById('tool-frame');
+        const overlay = document.getElementById('overlay');
+        const body = document.body;
+        const panelTitle = document.getElementById('panel-title-text');
+        function openTool(url, title) {
+            iframe.src = url;
+            panelTitle.innerText = `> Executing: ${title}`;
+            panel.classList.add('open');
+            overlay.classList.add('active');
+            body.classList.add('panel-open');
+        }
+        function closePanel() {
+            panel.classList.remove('open');
+            overlay.classList.remove('active');
+            body.classList.remove('panel-open');
+            setTimeout(() => {
+                iframe.src = ""; 
+                panelTitle.innerText = "TOOL EXECUTION";
+            }, 400);
+        }
+        overlay.addEventListener('click', closePanel);
+    </script>
+</body>
+</html>
