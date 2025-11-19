@@ -1,0 +1,555 @@
+<style>
+    body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background: #050505;
+        color: #ddd;
+        padding: 20px;
+        margin: 0;
+    }
+    h1 { margin-bottom: 0.5rem; color: #fff; letter-spacing: 2px; }
+    h3 { margin-top: 0; color: #fff; border-left: 3px solid #fff; padding-left: 10px; }
+    p { color: #aaa; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.6; }
+    .shape-section {
+        margin-bottom: 4rem;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 2rem;
+    }
+    .demo-stage {
+        background: #000;
+        border: 1px solid #333;
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        perspective: 800px;
+        margin-bottom: 1rem;
+        position: relative;
+        background-image: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        background-size: 100% 2px, 3px 100%;
+    }
+    .code-area {
+        background: #111;
+        border: 1px solid #333;
+        position: relative;
+        margin-top: 10px;
+        border-radius: 0;
+    }
+    .code-header {
+        background: #222;
+        padding: 5px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        border-bottom: 1px solid #333;
+        color: #888;
+        font-family: monospace;
+    }
+    .copy-btn {
+        background: transparent;
+        border: 1px solid #555;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.7rem;
+        padding: 2px 8px;
+        transition: 0.3s;
+    }
+    .copy-btn:hover {
+        background: #fff;
+        color: #000;
+    }
+    pre {
+        padding: 15px;
+        overflow-x: auto;
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        color: #ccc;
+        margin: 0;
+    }
+    .prop { color: #aaa; }
+    .val { color: #fff; font-weight: bold; }
+    .tag { color: #888; }
+    .cube-wrap {
+        width: 60px; height: 60px;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: rotateCube 8s infinite linear;
+    }
+    .cube-face {
+        position: absolute;
+        width: 60px; height: 60px;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        background: rgba(255,255,255,0.02);
+        box-shadow: 0 0 15px rgba(255,255,255,0.1) inset;
+    }
+    .cf-front  { transform: rotateY(0deg) translateZ(30px); }
+    .cf-back   { transform: rotateY(180deg) translateZ(30px); }
+    .cf-right  { transform: rotateY(90deg) translateZ(30px); }
+    .cf-left   { transform: rotateY(-90deg) translateZ(30px); }
+    .cf-top    { transform: rotateX(90deg) translateZ(30px); }
+    .cf-bottom { transform: rotateX(-90deg) translateZ(30px); }
+    @keyframes rotateCube {
+        0%   { transform: rotateX(-20deg) rotateY(0deg); }
+        100% { transform: rotateX(-20deg) rotateY(360deg); }
+    }
+    .pyramid-wrap {
+        width: 0; height: 0;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: rotatePyramid 8s infinite linear;
+    }
+    .pyr-face {
+        position: absolute;
+        top: 0; left: 0;
+        width: 0; height: 0;
+        border-left: 30px solid transparent;
+        border-right: 30px solid transparent;
+        border-bottom: 60px solid rgba(255,255,255,0.1);
+        transform-origin: 50% 100%;
+    }
+    .pyr-face::after {
+        content: ""; position: absolute;
+        top: 0; left: -30px;
+        width: 0; height: 0;
+        border-left: 30px solid transparent;
+        border-right: 30px solid transparent;
+        border-bottom: 60px solid transparent;
+        border-bottom-color: rgba(255,255,255,0.8);
+        transform: scale(0.95) translateY(1px);
+        z-index: -1;
+    }
+    .pf-1 { transform: rotateY(0deg) translateZ(30px) rotateX(30deg); }
+    .pf-2 { transform: rotateY(90deg) translateZ(30px) rotateX(30deg); }
+    .pf-3 { transform: rotateY(180deg) translateZ(30px) rotateX(30deg); }
+    .pf-4 { transform: rotateY(270deg) translateZ(30px) rotateX(30deg); }
+    @keyframes rotatePyramid {
+        0%   { transform: rotateX(-20deg) rotateY(0deg); }
+        100% { transform: rotateX(-20deg) rotateY(360deg); }
+    }
+    .gyro-wrap {
+        width: 100px; height: 100px;
+        position: relative;
+        transform-style: preserve-3d;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .gyro-ring {
+        position: absolute;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+    .gr-1 { width: 100%; height: 100%; animation: rotateGyro1 4s linear infinite; border-color: rgba(255,255,255,0.9); }
+    .gr-2 { width: 80%; height: 80%; animation: rotateGyro2 5s linear infinite; border-color: rgba(255,255,255,0.6); }
+    .gr-3 { width: 60%; height: 60%; animation: rotateGyro3 6s linear infinite; border-color: rgba(255,255,255,0.3); }
+    .gyro-core {
+        width: 20px; height: 20px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 15px #fff;
+        animation: pulseCore 2s ease-in-out infinite;
+    }
+    @keyframes rotateGyro1 { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
+    @keyframes rotateGyro2 { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(-360deg); } }
+    @keyframes rotateGyro3 { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(-360deg) rotateY(180deg); } }
+    @keyframes pulseCore   { 0%, 100% { transform: scale(0.8); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } }
+    .tess-wrap {
+        width: 80px; height: 80px;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: spinTess 10s infinite linear;
+    }
+    .t-cube {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        transform-style: preserve-3d;
+    }
+    .t-face {
+        position: absolute;
+        border: 1px solid #fff;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; color: #fff;
+    }
+    .outer-cube .t-face { width: 80px; height: 80px; opacity: 0.3; }
+    .out-f { transform: rotateY(0deg) translateZ(40px); }
+    .out-b { transform: rotateY(180deg) translateZ(40px); }
+    .out-r { transform: rotateY(90deg) translateZ(40px); }
+    .out-l { transform: rotateY(-90deg) translateZ(40px); }
+    .out-t { transform: rotateX(90deg) translateZ(40px); }
+    .out-bt{ transform: rotateX(-90deg) translateZ(40px); }
+    .inner-cube {
+        width: 40px; height: 40px;
+        top: 20px; left: 20px;
+        animation: spinInner 4s infinite linear reverse;
+    }
+    .inner-cube .t-face {
+        width: 40px; height: 40px;
+        border-color: #fff;
+        background: rgba(255,255,255,0.15);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+    .in-f { transform: rotateY(0deg) translateZ(20px); }
+    .in-b { transform: rotateY(180deg) translateZ(20px); }
+    .in-r { transform: rotateY(90deg) translateZ(20px); }
+    .in-l { transform: rotateY(-90deg) translateZ(20px); }
+    .in-t { transform: rotateX(90deg) translateZ(20px); }
+    .in-bt{ transform: rotateX(-90deg) translateZ(20px); }
+    @keyframes spinTess { 
+        0% { transform: rotateX(-20deg) rotateY(0deg); } 
+        100% { transform: rotateX(-20deg) rotateY(360deg); } 
+    }
+    @keyframes spinInner {
+        0% { transform: rotateX(0deg) rotateY(0deg); }
+        100% { transform: rotateX(360deg) rotateY(360deg); }
+    }
+    .dna-wrap {
+        width: 60px; height: 180px;
+        position: relative;
+        transform-style: preserve-3d;
+        animation: rotateDNA 5s infinite linear;
+        display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .dna-layer {
+        width: 100%; height: 2px;
+        position: relative;
+        transform-style: preserve-3d;
+    }
+    .dna-dot {
+        position: absolute; width: 8px; height: 8px;
+        border-radius: 50%;
+        top: -3px;
+    }
+    .dot-left  { left: 0; animation: dnaMove 2s infinite ease-in-out alternate; background: #fff; box-shadow: 0 0 8px #fff; }
+    .dot-right { right: 0; animation: dnaMove 2s infinite ease-in-out alternate-reverse; background: #777; box-shadow: 0 0 5px #777; }
+    .dna-bar {
+        position: absolute; top: 0; left: 4px; right: 4px; height: 1px;
+        background: linear-gradient(90deg, #fff, #777);
+        opacity: 0.3;
+        animation: dnaBarScale 2s infinite ease-in-out alternate;
+    }
+    .dl-1 .dna-dot, .dl-1 .dna-bar { animation-delay: -0.0s; }
+    .dl-2 .dna-dot, .dl-2 .dna-bar { animation-delay: -0.2s; }
+    .dl-3 .dna-dot, .dl-3 .dna-bar { animation-delay: -0.4s; }
+    .dl-4 .dna-dot, .dl-4 .dna-bar { animation-delay: -0.6s; }
+    .dl-5 .dna-dot, .dl-5 .dna-bar { animation-delay: -0.8s; }
+    .dl-6 .dna-dot, .dl-6 .dna-bar { animation-delay: -1.0s; }
+    .dl-7 .dna-dot, .dl-7 .dna-bar { animation-delay: -1.2s; }
+    .dl-8 .dna-dot, .dl-8 .dna-bar { animation-delay: -1.4s; }
+    .dl-9 .dna-dot, .dl-9 .dna-bar { animation-delay: -1.6s; }
+    .dl-10 .dna-dot,.dl-10 .dna-bar{ animation-delay: -1.8s; }
+    @keyframes rotateDNA { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+    @keyframes dnaMove { 
+        0% { transform: translateX(0) translateZ(20px) scale(1.2); z-index: 10; } 
+        100% { transform: translateX(52px) translateZ(-20px) scale(0.8); z-index: -1; } 
+    }
+    @keyframes dnaBarScale {
+        0% { transform: scaleX(1) rotateY(0deg); }
+        100% { transform: scaleX(0) rotateY(180deg); }
+    }
+    .atom-wrap {
+        width: 120px; height: 120px;
+        position: relative;
+        transform-style: preserve-3d;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .atom-core {
+        width: 20px; height: 20px;
+        background: radial-gradient(circle at 30% 30%, #fff, #333);
+        border-radius: 50%;
+        box-shadow: 0 0 20px rgba(255,255,255,0.8);
+        position: absolute;
+        animation: pulseAtom 2s infinite ease-in-out;
+    }
+    .orbit {
+        position: absolute;
+        width: 100%; height: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        transform-style: preserve-3d;
+    }
+    .electron {
+        position: absolute;
+        top: -4px; left: 50%; transform: translateX(-50%);
+        width: 6px; height: 6px;
+        background: #fff; border-radius: 50%;
+        box-shadow: 0 0 8px #fff;
+    }
+    .orb-1 { animation: spinOrbit1 2s linear infinite; }
+    .orb-2 { animation: spinOrbit2 3s linear infinite; }
+    .orb-3 { animation: spinOrbit3 4s linear infinite; }
+    .orb-wrap-1 { position: absolute; width:100%; height:100%; transform: rotateX(70deg) rotateY(0deg); transform-style: preserve-3d; }
+    .orb-wrap-2 { position: absolute; width:100%; height:100%; transform: rotateX(70deg) rotateY(60deg); transform-style: preserve-3d; }
+    .orb-wrap-3 { position: absolute; width:100%; height:100%; transform: rotateX(70deg) rotateY(-60deg); transform-style: preserve-3d; }
+    @keyframes pulseAtom { 0% { transform: scale(0.9); opacity: 0.8; } 100% { transform: scale(1.1); opacity: 1; } }
+    @keyframes spinOrbit1 { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
+    @keyframes spinOrbit2 { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
+    @keyframes spinOrbit3 { 0% { transform: rotateZ(0deg); } 100% { transform: rotateZ(360deg); } }
+    .singularity-wrap {
+        width: 120px; height: 120px;
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        perspective: 1000px;
+        overflow: visible;
+    }
+    .event-horizon {
+        width: 30px; height: 30px;
+        background: #000;
+        border-radius: 50%;
+        box-shadow: 0 0 15px #fff, 0 0 50px rgba(255,255,255,0.2) inset;
+        z-index: 10;
+        position: relative;
+    }
+    .accretion {
+        position: absolute;
+        width: 140%; height: 140%;
+        border-radius: 50%;
+        border: 1px solid transparent;
+        border-top: 2px solid #fff; 
+        border-left: 4px solid rgba(255,255,255,0.8);
+        box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        transform: rotateX(70deg);
+        animation: spinAccretion 1s linear infinite;
+    }
+    .infall {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 200%; height: 200%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(transparent 40%, rgba(255,255,255,0.15) 45%, transparent 50%);
+        border-radius: 50%;
+        animation: suckMatter 1.5s cubic-bezier(0.55, 0.055, 0.675, 0.19) infinite;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .infall-2 { animation-delay: 0.5s; }
+    .infall-3 { animation-delay: 1.0s; }
+    @keyframes spinAccretion {
+        0% { transform: rotateX(70deg) rotateZ(0deg); }
+        100% { transform: rotateX(70deg) rotateZ(360deg); }
+    }
+    @keyframes suckMatter {
+        0% { transform: translate(-50%, -50%) scale(1.5) rotate(0deg); opacity: 0; }
+        30% { opacity: 0.6; }
+        100% { transform: translate(-50%, -50%) scale(0) rotate(360deg); opacity: 0; }
+    }
+</style>
+<h1>CSS Geometric Archives [Monochrome]</h1>
+<p>
+    Pure CSS (No WebGL/Three.js). <br>
+    Copy & Paste ready for your projects.
+</p>
+<br>
+<div class="shape-section">
+    <h3>01. Wireframe Cube</h3>
+    <p>基本的な3Dキューブ。<code>transform-style: preserve-3d</code> を使用。</p>
+    <div class="demo-stage">
+        <div class="cube-wrap">
+            <div class="cube-face cf-front"></div>
+            <div class="cube-face cf-back"></div>
+            <div class="cube-face cf-right"></div>
+            <div class="cube-face cf-left"></div>
+            <div class="cube-face cf-top"></div>
+            <div class="cube-face cf-bottom"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header">
+            <span>HTML Structure</span>
+            <button class="copy-btn" onclick="copyToClipboard('code-cube')">COPY</button>
+        </div>
+        <pre id="code-cube">
+&lt;div class="scene"&gt;
+  &lt;div class="cube"&gt;
+    &lt;div class="face front"&gt;&lt;/div&gt;
+    &lt;div class="face back"&gt;&lt;/div&gt;
+    &lt;div class="face right"&gt;&lt;/div&gt;
+    &lt;div class="face left"&gt;&lt;/div&gt;
+    &lt;div class="face top"&gt;&lt;/div&gt;
+    &lt;div class="face bottom"&gt;&lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>02. Cyber Pyramid</h3>
+    <p>CSS borderによる三角形を4枚組み合わせた四角錐。</p>
+    <div class="demo-stage">
+        <div class="pyramid-wrap">
+            <div class="pyr-face pf-1"></div>
+            <div class="pyr-face pf-2"></div>
+            <div class="pyr-face pf-3"></div>
+            <div class="pyr-face pf-4"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header">
+            <span>CSS Concept</span>
+            <button class="copy-btn" onclick="copyToClipboard('code-pyr')">COPY</button>
+        </div>
+        <pre id="code-pyr">
+.triangle {
+  width: 0; height: 0;
+  border-left: 30px solid transparent;
+  border-right: 30px solid transparent;
+  border-bottom: 60px solid white;
+  transform-origin: 50% 100%;
+  transform: rotateX(30deg);
+}</pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>03. Gyroscope Model</h3>
+    <p>3つのリングが異なる軸で回転し、球体のような軌道を描く。</p>
+    <div class="demo-stage">
+        <div class="gyro-wrap">
+            <div class="gyro-ring gr-1"></div>
+            <div class="gyro-ring gr-2"></div>
+            <div class="gyro-ring gr-3"></div>
+            <div class="gyro-core"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header">
+            <span>Multi-Axis Rotation</span>
+            <button class="copy-btn" onclick="copyToClipboard('code-gyro')">COPY</button>
+        </div>
+        <pre id="code-gyro">
+/* 異なる軸で回転させるアニメーション */
+@keyframes rotate1 { to { transform: rotateX(360deg) rotateY(360deg); } }
+@keyframes rotate2 { to { transform: rotateX(360deg) rotateY(-360deg); } }
+.ring-1 { animation: rotate1 4s infinite linear; }
+.ring-2 { animation: rotate2 5s infinite linear; }</pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>04. Hyper Tesseract</h3>
+    <p>入れ子になったキューブが互いに逆回転</p>
+    <div class="demo-stage">
+        <div class="tess-wrap">
+            <div class="t-cube outer-cube">
+                <div class="t-face out-f"></div>
+                <div class="t-face out-b"></div>
+                <div class="t-face out-r"></div>
+                <div class="t-face out-l"></div>
+                <div class="t-face out-t"></div>
+                <div class="t-face out-bt"></div>
+            </div>
+            <div class="t-cube inner-cube">
+                <div class="t-face in-f"></div>
+                <div class="t-face in-b"></div>
+                <div class="t-face in-r"></div>
+                <div class="t-face in-l"></div>
+                <div class="t-face in-t"></div>
+                <div class="t-face in-bt"></div>
+            </div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header">
+            <span>Nested 3D Transforms</span>
+            <button class="copy-btn" onclick="copyToClipboard('code-tess')">COPY</button>
+        </div>
+        <pre id="code-tess">
+.outer-cube {
+  animation: spin 10s linear infinite;
+}
+.inner-cube {
+  /* 親の回転の中でさらに逆回転させる */
+  animation: spin 4s linear infinite reverse;
+  /* 透過度とサイズを変えて奥行きを強調 */
+}</pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>05. Cyber DNA</h3>
+    <p>位相のずれたアニメーションを使用した二重らせん構造。</p>
+    <div class="demo-stage">
+        <div class="dna-wrap">
+            <div class="dna-layer dl-1"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-2"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-3"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-4"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-5"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-6"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-7"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-8"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-9"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+            <div class="dna-layer dl-10"><div class="dna-dot dot-left"></div><div class="dna-bar"></div><div class="dna-dot dot-right"></div></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>Phase Shift</span><button class="copy-btn" onclick="copyToClipboard('c7')">COPY</button></div>
+        <pre id="c7">
+.layer:nth-child(1) { animation-delay: -0.0s; }
+.layer:nth-child(2) { animation-delay: -0.2s; }
+/       </pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>06. Atomic Orbit</h3>
+    <p>3軸で回転する電子殻。ラザフォード・ボーア模型。</p>
+    <div class="demo-stage">
+        <div class="atom-wrap">
+            <div class="atom-core"></div>
+            <div class="orb-wrap-1">
+                <div class="orbit orb-1"><div class="electron"></div></div>
+            </div>
+            <div class="orb-wrap-2">
+                <div class="orbit orb-2"><div class="electron"></div></div>
+            </div>
+            <div class="orb-wrap-3">
+                <div class="orbit orb-3"><div class="electron"></div></div>
+            </div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>3-Axis Rotation</span><button class="copy-btn" onclick="copyToClipboard('c9')">COPY</button></div>
+        <pre id="c9">
+.wrap { transform: rotateX(70deg) rotateY(60deg); }
+.ring { animation: spin 3s infinite linear; }</pre>
+    </div>
+</div>
+<div class="shape-section">
+    <h3>7. The Singularity</h3>
+    <p>重力。事象の地平面へ吸い込まれる物質の表現。</p>
+    <div class="demo-stage">
+        <div class="singularity-wrap">
+            <div class="infall"></div>
+            <div class="infall infall-2"></div>
+            <div class="infall infall-3"></div>
+            <div class="accretion"></div>
+            <div class="event-horizon"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>Gravity Well Effect</span><button class="copy-btn" onclick="copyToClipboard('c10')">COPY</button></div>
+        <pre id="c10">
+/* 事象の地平面へ加速して落ち込むアニメーション */
+@keyframes suckMatter {
+  0% { transform: scale(1.5) rotate(0deg); opacity: 0; }
+  30% { opacity: 0.6; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+.infall {
+  animation: suckMatter 1.5s cubic-bezier(0.55, 0.055, 0.675, 0.19) infinite;
+}</pre>
+    </div>
+</div>
+<div style="text-align:right; color:#666; margin-top:20px;">
+    > System Ready.
+</div>
+<script>
+    if (typeof window.copyToClipboard === 'undefined') {
+        window.copyToClipboard = function(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Code Copied to Clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        };
+    }
+</script>
