@@ -27,7 +27,6 @@
             padding: 20px;
         }
 
- 
         header {
             width: 100%; max-width: 1600px;
             display: flex; justify-content: space-between; align-items: flex-end;
@@ -35,9 +34,6 @@
         }
         h1 { font-size: 1.5rem; }
         h1 span { color: #888; font-size: 0.8em; }
-        .back-link { color: #888; text-decoration: none; font-size: 0.9rem; }
-        .back-link:hover { color: var(--accent-color); }
-
 
         .tool-container {
             display: flex; flex-direction: column; gap: 20px;
@@ -45,7 +41,9 @@
             max-width: 1600px;
         }
 
+        /* 修正箇所: display: blockを追加し、labelとして機能させる */
         #dropZone {
+            display: block;
             width: 100%; padding: 30px;
             border: 2px dashed #444; border-radius: 8px;
             text-align: center; background: rgba(255,255,255,0.02);
@@ -58,7 +56,6 @@
         #dropZone p { color: #888; pointer-events: none; }
         #fileInput { display: none; }
 
-        
         .editors-grid {
             display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
             height: 70vh; 
@@ -76,7 +73,6 @@
             display: flex; justify-content: space-between; align-items: center;
         }
         
-
         textarea {
             flex: 1;
             background: #0a0a0a; color: #ccc; border: none;
@@ -84,7 +80,6 @@
             line-height: 1.5; outline: none; white-space: pre; overflow-x: auto;
         }
         textarea:focus { box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-
 
         .controls { display: flex; gap: 10px; align-items: center; }
         
@@ -96,7 +91,6 @@
             font-size: 0.8rem; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
         }
         
-       
         button.action-btn {
             background: var(--accent-color); color: #000;
             border: none; padding: 6px 20px; cursor: pointer;
@@ -130,12 +124,12 @@
 
     <div class="tool-container">
         
-        <!-- Drag & Drop Zone -->
-        <div id="dropZone">
+        <!-- 修正箇所: divをlabelに変更し、for属性を追加 -->
+        <label id="dropZone" for="fileInput">
             <p>Drag & Drop file here (or click to upload)</p>
             <p style="font-size: 0.8rem; margin-top: 5px;">Auto-detects language from extension (.js, .py, .html, etc.)</p>
             <input type="file" id="fileInput">
-        </div>
+        </label>
 
         <div class="editors-grid">
             <!-- 入力エリア -->
@@ -181,38 +175,28 @@
 
     <script>
         const libCdl = {
-            
             // 拡張子とモードのマッピング
             extMap: {
-                // C-Style (//, /* */)
                 'js': 'c-style', 'ts': 'c-style', 'jsx': 'c-style', 'tsx': 'c-style',
                 'java': 'c-style', 'c': 'c-style', 'cpp': 'c-style', 'h': 'c-style', 
                 'cs': 'c-style', 'php': 'c-style', 'go': 'c-style', 'swift': 'c-style', 
                 'kt': 'c-style', 'rs': 'c-style',
-                
-                // Python-Style (#)
                 'py': 'python', 'rb': 'python', 'sh': 'python', 'yaml': 'python', 
                 'yml': 'python', 'pl': 'python',
-                
-                // HTML (Aggressive default)
                 'html': 'html-aggressive', 'htm': 'html-aggressive', 
                 'vue': 'html-aggressive', 'svelte': 'html-aggressive',
                 'xml': 'html', 'svg': 'html',
-                
-                // CSS (/* */)
                 'css': 'css', 'scss': 'css', 'less': 'css',
-                
-                // SQL (-- , /* */)
                 'sql': 'sql'
             },
 
-            
             detectMode: function(filename) {
                 if (!filename.includes('.')) return null;
                 const ext = filename.split('.').pop().toLowerCase();
                 return this.extMap[ext] || null;
             },
-                 process: function(sourceCode, type, trimEmpty) {
+
+            process: function(sourceCode, type, trimEmpty) {
                 if (!sourceCode) return "";
                 
                 let result = "";
@@ -236,50 +220,38 @@
                 return code.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
             },
 
-
             removeHtml: function(code) {
                 return code.replace(/<!--[\s\S]*?-->/g, '');
             },
 
-
             removeHtmlAggressive: function(code) {
-                
                 let c = this.removeHtml(code);
-
-               
                 c = c.replace(/(<style[^>]*>)([\s\S]*?)(<\/style>)/gi, (match, startTag, content, endTag) => {
                     return startTag + this.removeCss(content) + endTag;
                 });
-
-               
                 c = c.replace(/(<script[^>]*>)([\s\S]*?)(<\/script>)/gi, (match, startTag, content, endTag) => {
-             
                     return startTag + this.removeCStyle(content) + endTag;
                 });
-
                 return c;
             },
 
-            // CSS
             removeCss: function(code) {
                 return code.replace(/\/\*[\s\S]*?\*\//g, '');
             },
 
-            // Python / Shell
             removePythonStyle: function(code) {
                 return code.replace(/#.*$/gm, '');
             },
 
-            // SQL
             removeSql: function(code) {
                 return code.replace(/\/\*[\s\S]*?\*\/|--.*$/gm, '');
             },
 
-     
             removeBlankLines: function(code) {
                 return code.replace(/^\s*[\r\n]/gm, '');
             }
         };
+
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const inputEl = document.getElementById('inputCode');
@@ -292,7 +264,8 @@
         const trimCheck = document.getElementById('trimLines');
         let originalFileName = "";
         
-        dropZone.addEventListener('click', () => fileInput.click());
+        // 修正箇所: クリックイベントを削除 (labelタグの標準機能に任せる)
+        // dropZone.addEventListener('click', () => fileInput.click());
         
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -392,7 +365,6 @@
     <\/script>
 </body>
 </html>`;
-
     </script>
 </body>
 </html>
