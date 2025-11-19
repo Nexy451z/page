@@ -41,7 +41,7 @@
             max-width: 1600px;
         }
 
-        /* 修正箇所: display: blockを追加し、labelとして機能させる */
+    
         #dropZone {
             display: block;
             width: 100%; padding: 30px;
@@ -106,7 +106,7 @@
 
         .status-msg { font-size: 0.8rem; color: var(--accent-color); margin-left: 10px; display: none; }
 
-        /* スマホ対応 */
+
         @media (max-width: 768px) {
             .editors-grid { grid-template-columns: 1fr; height: auto; }
             textarea { height: 300px; }
@@ -124,7 +124,7 @@
 
     <div class="tool-container">
         
-        <!-- 修正箇所: divをlabelに変更し、for属性を追加 -->
+    
         <label id="dropZone" for="fileInput">
             <p>Drag & Drop file here (or click to upload)</p>
             <p style="font-size: 0.8rem; margin-top: 5px;">Auto-detects language from extension (.js, .py, .html, etc.)</p>
@@ -132,7 +132,7 @@
         </label>
 
         <div class="editors-grid">
-            <!-- 入力エリア -->
+            
             <div class="editor-box">
                 <div class="box-header">
                     <div style="display:flex; align-items:center; flex-wrap:wrap;">
@@ -175,7 +175,7 @@
 
     <script>
         const libCdl = {
-            // 拡張子とモードのマッピング
+
             extMap: {
                 'js': 'c-style', 'ts': 'c-style', 'jsx': 'c-style', 'tsx': 'c-style',
                 'java': 'c-style', 'c': 'c-style', 'cpp': 'c-style', 'h': 'c-style', 
@@ -262,10 +262,7 @@
         const copyBtn = document.getElementById('copyBtn');
         const detectedMsg = document.getElementById('detectedMsg');
         const trimCheck = document.getElementById('trimLines');
-        let originalFileName = "";
-        
-        // 修正箇所: クリックイベントを削除 (labelタグの標準機能に任せる)
-        // dropZone.addEventListener('click', () => fileInput.click());
+        let originalFileName ="";
         
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
