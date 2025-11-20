@@ -1,0 +1,234 @@
+<style>
+    body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background: #050505;
+        color: #ddd;
+        padding: 20px;
+        margin: 0;
+    }
+    h1 { margin-bottom: 0.5rem; color: #fff; letter-spacing: 2px; }
+    h3 { margin-top: 0; color: #fff; border-left: 3px solid #fff; padding-left: 10px; }
+    p { color: #aaa; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.6; }
+    .loader-section {
+        margin-bottom: 4rem;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 2rem;
+    }
+    .demo-stage {
+        background: #000;
+        border: 1px solid #333;
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        position: relative;
+        /* Grid Pattern Background */
+        background-image: linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    .code-area {
+        background: #111;
+        border: 1px solid #333;
+        position: relative;
+        margin-top: 10px;
+    }
+    .code-header {
+        background: #222;
+        padding: 5px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+        border-bottom: 1px solid #333;
+        color: #888;
+        font-family: monospace;
+    }
+    .copy-btn {
+        background: transparent; border: 1px solid #555; color: #fff;
+        cursor: pointer; font-size: 0.7rem; padding: 2px 8px; transition: 0.3s;
+    }
+    .copy-btn:hover { background: #fff; color: #000; }
+    pre {
+        padding: 15px; overflow-x: auto; font-family: 'Courier New', monospace;
+        font-size: 0.8rem; line-height: 1.4; color: #ccc; margin: 0;
+    }
+
+    /* --- 01. Data Stream (Bars) --- */
+    .loader-bars { display: flex; gap: 4px; align-items: flex-end; height: 30px; }
+    .bar { width: 6px; background: #fff; animation: dataStream 1s ease-in-out infinite; }
+    .bar:nth-child(1) { height: 10px; animation-delay: 0.0s; }
+    .bar:nth-child(2) { height: 15px; animation-delay: 0.1s; }
+    .bar:nth-child(3) { height: 20px; animation-delay: 0.2s; }
+    .bar:nth-child(4) { height: 15px; animation-delay: 0.3s; }
+    .bar:nth-child(5) { height: 10px; animation-delay: 0.4s; }
+    @keyframes dataStream {
+        0%, 100% { transform: scaleY(1); opacity: 0.3; }
+        50% { transform: scaleY(2); opacity: 1; }
+    }
+
+    /* --- 02. Reactor Ring (Spinners) --- */
+    .loader-reactor { position: relative; width: 50px; height: 50px; }
+    .arc {
+        position: absolute; width: 100%; height: 100%;
+        border: 2px solid transparent; border-top-color: #fff; border-radius: 50%;
+        animation: spinArc 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    }
+    .arc:nth-child(2) { width: 70%; height: 70%; top: 15%; left: 15%; border-top-color: transparent; border-bottom-color: #888; animation-direction: reverse; animation-duration: 2s; }
+    .arc:nth-child(3) { width: 40%; height: 40%; top: 30%; left: 30%; border-top-color: transparent; border-left-color: #444; animation-duration: 1s; }
+    @keyframes spinArc { 100% { transform: rotate(360deg); } }
+
+    /* --- 03. System Scan (Line) --- */
+    .loader-scan { width: 120px; height: 2px; background: #222; position: relative; overflow: hidden; }
+    .scan-line {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, #fff, transparent);
+        transform: translateX(-100%);
+        animation: scanning 1.5s ease-in-out infinite;
+    }
+    @keyframes scanning { 100% { transform: translateX(100%); } }
+
+    /* --- 04. Binary Grid (Dots) --- */
+    .loader-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; width: 32px; }
+    .dot { width: 8px; height: 8px; background: #fff; opacity: 0.2; animation: pulseGrid 1.2s infinite; }
+    .dot:nth-child(1) { animation-delay: 0.0s; } .dot:nth-child(2) { animation-delay: 0.1s; } .dot:nth-child(3) { animation-delay: 0.2s; }
+    .dot:nth-child(4) { animation-delay: 0.1s; } .dot:nth-child(5) { animation-delay: 0.2s; } .dot:nth-child(6) { animation-delay: 0.3s; }
+    .dot:nth-child(7) { animation-delay: 0.2s; } .dot:nth-child(8) { animation-delay: 0.3s; } .dot:nth-child(9) { animation-delay: 0.4s; }
+    @keyframes pulseGrid { 0%, 100% { opacity: 0.2; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+
+    /* --- 05. Kinetic Cube (3D) --- */
+    .loader-cube {
+        width: 40px; height: 40px; background: #fff;
+        animation: kinetic 2s infinite ease-in-out;
+    }
+    @keyframes kinetic {
+        0% { transform: perspective(120px) rotateX(0deg) rotateY(0deg); }
+        50% { transform: perspective(120px) rotateX(-180.1deg) rotateY(0deg); background: #555; }
+        100% { transform: perspective(120px) rotateX(-180deg) rotateY(-179.9deg); background: #fff; }
+    }
+
+
+</style>
+
+<h1>System Status Indicators</h1>
+<p>
+    Minimalist CSS Loaders. <br>
+    Lightweight, Scalable, No JavaScript Required.
+</p>
+<br>
+
+<div class="loader-section">
+    <h3>01. Data Stream</h3>
+    <p>データの送受信や音声波形を表現するバーアニメーション。</p>
+    <div class="demo-stage">
+        <div class="loader-bars">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>CSS Keyframes</span><button class="copy-btn" onclick="copyToClipboard('c1')">COPY</button></div>
+        <pre id="c1">
+.bar {
+  animation: dataStream 1s ease-in-out infinite;
+}
+.bar:nth-child(1) { animation-delay: 0.0s; }
+.bar:nth-child(2) { animation-delay: 0.1s; }
+/* ... */</pre>
+    </div>
+</div>
+
+<div class="loader-section">
+    <h3>02. Reactor Ring</h3>
+    <p>多重構造のリングが異なる速度で回転する待機インジケータ。</p>
+    <div class="demo-stage">
+        <div class="loader-reactor">
+            <div class="arc"></div>
+            <div class="arc"></div>
+            <div class="arc"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>Border Spin</span><button class="copy-btn" onclick="copyToClipboard('c2')">COPY</button></div>
+        <pre id="c2">
+.arc {
+  border: 2px solid transparent;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+}</pre>
+    </div>
+</div>
+
+<div class="loader-section">
+    <h3>03. System Scan</h3>
+    <p>リニアグラデーションを使用した走査線エフェクト。</p>
+    <div class="demo-stage">
+        <div class="loader-scan">
+            <div class="scan-line"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>Gradient Animation</span><button class="copy-btn" onclick="copyToClipboard('c3')">COPY</button></div>
+        <pre id="c3">
+.scan-line {
+  background: linear-gradient(90deg, transparent, #fff, transparent);
+  transform: translateX(-100%);
+  animation: scanning 1.5s ease-in-out infinite;
+}</pre>
+    </div>
+</div>
+
+<div class="loader-section">
+    <h3>04. Neural Grid</h3>
+    <p>3x3のグリッドパターンがランダム風に明滅。</p>
+    <div class="demo-stage">
+        <div class="loader-grid">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>Grid & Delay</span><button class="copy-btn" onclick="copyToClipboard('c4')">COPY</button></div>
+        <pre id="c4">
+.loader-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+.dot { animation: pulse 1.2s infinite; }
+/* 各dotに異なるanimation-delayを設定 */</pre>
+    </div>
+</div>
+
+<div class="loader-section">
+    <h3>05. Kinetic Cube</h3>
+    <p>3Dトランスフォームを使用した、折り畳まれるような正方形。</p>
+    <div class="demo-stage">
+        <div class="loader-cube"></div>
+    </div>
+    <div class="code-area">
+        <div class="code-header"><span>3D Rotation</span><button class="copy-btn" onclick="copyToClipboard('c5')">COPY</button></div>
+        <pre id="c5">
+@keyframes kinetic {
+  0% { transform: perspective(120px) rotateX(0deg); }
+  50% { transform: perspective(120px) rotateX(-180deg); background: #555; }
+  100% { transform: perspective(120px) rotateX(-180deg) rotateY(-180deg); }
+}</pre>
+    </div>
+</div>
+
+
+
+<div style="text-align:right; color:#666; margin-top:20px;">
+    > System Ready.
+</div>
+
+<script>
+    if (typeof window.copyToClipboard === 'undefined') {
+        window.copyToClipboard = function(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Code Copied to Clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        };
+    }
+</script>
